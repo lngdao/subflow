@@ -1,0 +1,76 @@
+import { invoke } from "@tauri-apps/api/core";
+import type { AppConfig, SubtitleFile, Task, VideoMetadata, VoiceInfo } from "./types";
+
+export async function downloadSubtitle(url: string, outputDir: string, lang?: string) {
+  return invoke<string>("download_subtitle", { url, outputDir, lang });
+}
+
+export async function getVideoMetadata(url: string) {
+  return invoke<VideoMetadata>("get_video_metadata", { url });
+}
+
+export async function parseSubtitleFile(path: string) {
+  return invoke<SubtitleFile>("parse_subtitle_file", { path });
+}
+
+export async function translateSubtitle(
+  subtitleJson: SubtitleFile,
+  sourceLang: string,
+  targetLang: string,
+) {
+  return invoke<SubtitleFile>("translate_subtitle", { subtitleJson, sourceLang, targetLang });
+}
+
+export async function generateTts(text: string, voice: string, outputPath: string) {
+  return invoke<string>("generate_tts", { text, voice, outputPath });
+}
+
+export async function listTtsVoices(providerName?: string) {
+  return invoke<VoiceInfo[]>("list_tts_voices", { providerName });
+}
+
+export async function addTask(
+  url?: string,
+  filePath?: string,
+  sourceLang?: string,
+  targetLangs?: string[],
+) {
+  return invoke<string>("add_task", { url, filePath, sourceLang, targetLangs });
+}
+
+export async function cancelTask(taskId: string) {
+  return invoke<void>("cancel_task", { taskId });
+}
+
+export async function pauseTask(taskId: string) {
+  return invoke<void>("pause_task", { taskId });
+}
+
+export async function resumeTask(taskId: string) {
+  return invoke<void>("resume_task", { taskId });
+}
+
+export async function getTasks() {
+  return invoke<Task[]>("get_tasks");
+}
+
+export async function getSettings() {
+  return invoke<AppConfig>("get_settings");
+}
+
+export async function saveSettings(config: AppConfig) {
+  return invoke<void>("save_settings", { config });
+}
+
+export async function saveApiKey(provider: string, apiKey: string) {
+  return invoke<void>("save_api_key", { provider, apiKey });
+}
+
+export async function testProviderConnection(
+  provider: string,
+  apiKey: string,
+  baseUrl?: string,
+  model?: string,
+) {
+  return invoke<boolean>("test_provider_connection", { provider, apiKey, baseUrl, model });
+}
