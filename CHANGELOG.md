@@ -1,5 +1,53 @@
 # Changelog
 
+## v0.2.0 - UI Overhaul + Reliability (2026-03-02)
+
+### Added
+
+**Backend**
+- Direct YouTube subtitle fetcher via Innertube API (ANDROID client) — bypasses yt-dlp for subtitle downloads, much faster and avoids PO Token / rate limit issues
+- Handles both JSON (json3) and XML (srv3) subtitle formats from YouTube
+- yt-dlp fallback when direct fetch fails
+- Processing mode support: SubOnly, SubTranslate, SubTranslateTts — skip unnecessary steps
+- AbortHandle-based task cancellation for instant queue responsiveness
+- Remove task from queue (backend command + frontend)
+- Retry task support with proper state reset
+- Auto-download yt-dlp and ffmpeg binaries on first launch
+- Dependency status check command (`check_binary_status`)
+- Task event now includes `video_title` for live title updates
+- Edge TTS retry logic (3 attempts with backoff) for WebSocket failures
+- yt-dlp retry with exponential backoff for 429/network errors
+
+**Frontend**
+- Full shadcn/ui + animate-ui component migration (Button, Input, Badge, Card, Select, Progress, Tabs, Sheet, Slider, Textarea, Label, Separator, ContextMenu)
+- Animated tab transitions with animate-ui Radix Tabs
+- Settings panel as slide-in Sheet (right side)
+- Right-click context menu on TaskCard (Open Folder, Retry, Pause, Resume, Cancel, Remove)
+- Processing mode selection: Source tab (3 modes), Files tab (2 modes)
+- File staging area with drag-drop + browse, Start button to queue
+- Video title display on TaskCard (updates live when metadata fetched)
+- Created-at timestamp on TaskCard ("5m ago", "2h ago")
+- Dependency status indicator in toolbar (green/red dot)
+- Log panel (slide-up) with timestamped entries and clear button
+- Toast notifications via Sonner
+- i18n support (English + Vietnamese) with language switcher in Settings
+- API key masking in Settings (shows "Saved" / "Not set")
+- Output button opens folder directly (no browse dialog fallback)
+
+### Fixed
+- URL cleaning: strips playlist params, mobile URLs, timestamps from YouTube URLs
+- Queue responsiveness: cancelling a task immediately starts next queued task (was ~2s delay)
+- yt-dlp `ios` player client PO Token requirement — switched to `mweb,web` fallback
+- Paste bug: URL detection now properly handles paste events
+- Cancel/pause race condition resolved with AbortHandle
+
+### Changed
+- Tailwind CSS v4 with shadcn CSS variables (dark theme preserved)
+- Task struct includes `mode`, `video_title`, `created_at` fields
+- 16 unit tests (up from 5)
+
+---
+
 ## v0.1.0 - Initial Release (2026-03-01)
 
 ### Added

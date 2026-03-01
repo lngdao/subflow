@@ -1,0 +1,97 @@
+{
+  "app": {
+    "name": "SubFlow",
+    "subtitle": "subtitle studio"
+  },
+  "tabs": {
+    "source": "Source",
+    "files": "Files",
+    "queue": "Queue"
+  },
+  "source": {
+    "placeholder": "Paste YouTube URL here...",
+    "add": "Add",
+    "browse": "Browse Files"
+  },
+  "config": {
+    "sourceLang": "Source Language",
+    "targetLangs": "Target Languages",
+    "voice": "Voice",
+    "voicePerLang": "Voice per Language",
+    "selectVoice": "Select voice",
+    "defaultVoice": "Default",
+    "speed": "Speed",
+    "format": "Format",
+    "autoDetect": "Auto Detect",
+    "mode": "Processing Mode",
+    "subOnly": "Subtitle Only",
+    "subTranslate": "Sub + Translation",
+    "subTranslateTts": "Sub + Translation + TTS",
+    "translateOnly": "Translate",
+    "translateTts": "Translate + TTS"
+  },
+  "settings": {
+    "title": "Settings",
+    "translation": "Translation",
+    "provider": "Provider",
+    "apiKey": "API Key",
+    "baseUrl": "Base URL",
+    "model": "Model",
+    "test": "Test",
+    "tts": "TTS",
+    "output": "Output",
+    "folder": "Folder",
+    "parallelJobs": "Parallel Jobs",
+    "done": "Done",
+    "change": "Change",
+    "language": "App Language",
+    "keySet": "Saved",
+    "keyNotSet": "Not set"
+  },
+  "task": {
+    "queued": "Queued",
+    "downloading": "Downloading",
+    "translating": "Translating",
+    "generatingTts": "Generating TTS",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "paused": "Paused",
+    "cancel": "Cancel",
+    "pause": "Pause",
+    "resume": "Resume",
+    "retry": "Retry",
+    "openFolder": "Open Folder",
+    "remove": "Remove from Queue"
+  },
+  "toolbar": {
+    "settings": "Settings",
+    "output": "Output",
+    "log": "Log",
+    "noOutputFolder": "No output folder set. Configure in Settings."
+  },
+  "deps": {
+    "title": "Dependencies",
+    "installed": "Installed",
+    "missing": "Missing",
+    "install": "Install",
+    "installing": "Installing...",
+    "retry": "Retry",
+    "allGood": "All dependencies are installed.",
+    "missingDeps": "Missing dependencies"
+  },
+  "log": {
+    "title": "Log",
+    "clear": "Clear",
+    "empty": "No logs yet"
+  },
+  "dropzone": {
+    "dropFiles": "Drop files here",
+    "orPaste": "or paste YouTube URLs",
+    "supported": "supported: .srt .vtt .txt"
+  },
+  "queue": {
+    "title": "Queue",
+    "empty": "No tasks yet. Add URLs or files to get started."
+  }
+}

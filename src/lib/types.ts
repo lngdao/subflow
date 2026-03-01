@@ -42,7 +42,10 @@ export interface TaskEvent {
   progress: number;
   message: string;
   current_lang: string | null;
+  video_title?: string | null;
 }
+
+export type ProcessingMode = "SubOnly" | "SubTranslate" | "SubTranslateTts";
 
 export interface Task {
   id: string;
@@ -52,6 +55,7 @@ export interface Task {
   video_id: string | null;
   source_lang: string;
   target_langs: string[];
+  mode: ProcessingMode;
   status: TaskStatus;
   progress: number;
   message: string;
@@ -72,7 +76,8 @@ export interface TranslationConfig {
 
 export interface TtsConfig {
   provider: string;
-  voice: string | null;
+  voices: Record<string, string>;
+  voice?: string | null;
   speed: number;
 }
 
@@ -97,4 +102,11 @@ export interface VoiceInfo {
   name: string;
   language: string;
   gender: string | null;
+}
+
+export interface BinaryStatus {
+  ytdlp_available: boolean;
+  ffmpeg_available: boolean;
+  ytdlp_path: string | null;
+  ffmpeg_path: string | null;
 }

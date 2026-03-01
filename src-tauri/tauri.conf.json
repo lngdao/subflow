@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "SubFlow",
-        "width": 960,
-        "height": 680,
+        "width": 1080,
+        "height": 760,
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,

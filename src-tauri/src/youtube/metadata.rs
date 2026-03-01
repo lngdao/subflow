@@ -16,8 +16,17 @@ pub struct VideoMetadata {
 pub async fn get_metadata(url: &str) -> Result<VideoMetadata> {
     crate::youtube::downloader::check_ytdlp().await?;
 
-    let output = Command::new("yt-dlp")
-        .args(["--dump-json", "--no-download", url])
+    let clean_url = super::downloader::clean_youtube_url(url);
+
+    let yt_dlp = super::downloader::get_ytdlp_path();
+    let output = Command::new(&yt_dlp)
+        .args([
+            "--dump-json",
+            "--no-download",
+            "--no-playlist",
+            "--extractor-args", "youtube:player_client=mweb,web",
+            &clean_url,
+        ])
         .output()
         .await
         .map_err(|e| SubflowError::YouTube(format!("Failed to run yt-dlp: {}", e)))?;

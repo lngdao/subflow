@@ -1,0 +1,97 @@
+{
+  "app": {
+    "name": "SubFlow",
+    "subtitle": "subtitle studio"
+  },
+  "tabs": {
+    "source": "Nguồn",
+    "files": "Tệp",
+    "queue": "Hàng đợi"
+  },
+  "source": {
+    "placeholder": "Dán URL YouTube vào đây...",
+    "add": "Thêm",
+    "browse": "Duyệt tệp"
+  },
+  "config": {
+    "sourceLang": "Ngôn ngữ nguồn",
+    "targetLangs": "Ngôn ngữ đích",
+    "voice": "Giọng đọc",
+    "voicePerLang": "Giọng đọc theo ngôn ngữ",
+    "selectVoice": "Chọn giọng đọc",
+    "defaultVoice": "Mặc định",
+    "speed": "Tốc độ",
+    "format": "Định dạng",
+    "autoDetect": "Tự phát hiện",
+    "mode": "Chế độ xử lý",
+    "subOnly": "Chỉ phụ đề",
+    "subTranslate": "Phụ đề + Dịch",
+    "subTranslateTts": "Phụ đề + Dịch + TTS",
+    "translateOnly": "Dịch",
+    "translateTts": "Dịch + TTS"
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "translation": "Dịch thuật",
+    "provider": "Nhà cung cấp",
+    "apiKey": "API Key",
+    "baseUrl": "Base URL",
+    "model": "Model",
+    "test": "Kiểm tra",
+    "tts": "TTS",
+    "output": "Đầu ra",
+    "folder": "Thư mục",
+    "parallelJobs": "Xử lý song song",
+    "done": "Xong",
+    "change": "Đổi",
+    "language": "Ngôn ngữ ứng dụng",
+    "keySet": "Đã lưu",
+    "keyNotSet": "Chưa có"
+  },
+  "task": {
+    "queued": "Đang chờ",
+    "downloading": "Đang tải",
+    "translating": "Đang dịch",
+    "generatingTts": "Đang tạo TTS",
+    "completed": "Hoàn thành",
+    "failed": "Lỗi",
+    "cancelled": "Đã hủy",
+    "paused": "Đã tạm dừng",
+    "cancel": "Hủy",
+    "pause": "Tạm dừng",
+    "resume": "Tiếp tục",
+    "retry": "Thử lại",
+    "openFolder": "Mở thư mục",
+    "remove": "Xóa khỏi hàng đợi"
+  },
+  "toolbar": {
+    "settings": "Cài đặt",
+    "output": "Đầu ra",
+    "log": "Nhật ký",
+    "noOutputFolder": "Chưa đặt thư mục đầu ra. Cấu hình trong Cài đặt."
+  },
+  "deps": {
+    "title": "Phụ thuộc",
+    "installed": "Đã cài",
+    "missing": "Thiếu",
+    "install": "Cài đặt",
+    "installing": "Đang cài...",
+    "retry": "Thử lại",
+    "allGood": "Tất cả phụ thuộc đã sẵn sàng.",
+    "missingDeps": "Thiếu phụ thuộc"
+  },
+  "log": {
+    "title": "Nhật ký",
+    "clear": "Xóa",
+    "empty": "Chưa có log nào"
+  },
+  "dropzone": {
+    "dropFiles": "Kéo thả tệp vào đây",
+    "orPaste": "hoặc dán URL YouTube",
+    "supported": "hỗ trợ: .srt .vtt .txt"
+  },
+  "queue": {
+    "title": "Hàng đợi",
+    "empty": "Chưa có tác vụ. Thêm URL hoặc tệp để bắt đầu."
+  }
+}

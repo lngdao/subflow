@@ -5,20 +5,22 @@ import * as api from "@/lib/tauri";
 interface TaskStore {
   tasks: Task[];
   loading: boolean;
-  addTask: (url?: string, filePath?: string) => Promise<void>;
+  addTask: (url?: string, filePath?: string, mode?: string) => Promise<void>;
   loadTasks: () => Promise<void>;
   updateFromEvent: (event: TaskEvent) => void;
   cancelTask: (taskId: string) => Promise<void>;
   pauseTask: (taskId: string) => Promise<void>;
   resumeTask: (taskId: string) => Promise<void>;
+  retryTask: (taskId: string) => Promise<void>;
+  removeTask: (taskId: string) => Promise<void>;
 }
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   loading: false,
 
-  addTask: async (url, filePath) => {
-    await api.addTask(url, filePath);
+  addTask: async (url, filePath, mode) => {
+    await api.addTask(url, filePath, undefined, undefined, mode);
     // Reload tasks to get the new task
     await get().loadTasks();
   },
@@ -43,6 +45,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
               progress: event.progress,
               message: event.message,
               current_lang: event.current_lang,
+              ...(event.video_title ? { video_title: event.video_title } : {}),
             }
           : t,
       ),
@@ -73,6 +76,24 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       tasks: state.tasks.map((t) =>
         t.id === taskId ? { ...t, status: "Queued" as const, message: "Resumed" } : t,
       ),
+    }));
+  },
+
+  retryTask: async (taskId) => {
+    await api.retryTask(taskId);
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId
+          ? { ...t, status: "Queued" as const, progress: 0, message: "Queued (retry)", error: null }
+          : t,
+      ),
+    }));
+  },
+
+  removeTask: async (taskId) => {
+    await api.removeTask(taskId);
+    set((state) => ({
+      tasks: state.tasks.filter((t) => t.id !== taskId),
     }));
   },
 }));

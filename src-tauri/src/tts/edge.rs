@@ -30,27 +30,47 @@ impl TtsProvider for EdgeTtsProvider {
             use msedge_tts::tts::client::connect as tts_connect;
             use msedge_tts::tts::SpeechConfig;
 
-            let mut tts = tts_connect()
-                .map_err(|e| SubflowError::Tts(format!("Edge TTS connection failed: {}", e)))?;
+            let max_retries = 3;
+            let mut last_err = None;
 
-            let config = SpeechConfig {
-                voice_name: voice,
-                audio_format: "audio-24khz-48kbitrate-mono-mp3".to_string(),
-                pitch: 0,
-                rate: 0,
-                volume: 0,
-            };
-            let audio = tts
-                .synthesize(&text, &config)
-                .map_err(|e| SubflowError::Tts(format!("Edge TTS synthesis failed: {}", e)))?;
+            for attempt in 0..max_retries {
+                if attempt > 0 {
+                    std::thread::sleep(std::time::Duration::from_millis(1000 * attempt as u64));
+                }
 
-            if let Some(parent) = output_path.parent() {
-                std::fs::create_dir_all(parent)?;
+                let connect_result = tts_connect();
+                let mut tts = match connect_result {
+                    Ok(t) => t,
+                    Err(e) => {
+                        last_err = Some(format!("Edge TTS connection failed: {}", e));
+                        continue;
+                    }
+                };
+
+                let config = SpeechConfig {
+                    voice_name: voice.clone(),
+                    audio_format: "audio-24khz-48kbitrate-mono-mp3".to_string(),
+                    pitch: 0,
+                    rate: 0,
+                    volume: 0,
+                };
+
+                match tts.synthesize(&text, &config) {
+                    Ok(audio) => {
+                        if let Some(parent) = output_path.parent() {
+                            std::fs::create_dir_all(parent)?;
+                        }
+                        std::fs::write(&output_path, &audio.audio_bytes)?;
+                        return Ok(());
+                    }
+                    Err(e) => {
+                        last_err = Some(format!("Edge TTS synthesis failed: {}", e));
+                        continue;
+                    }
+                }
             }
 
-            std::fs::write(&output_path, &audio.audio_bytes)?;
-
-            Ok(())
+            Err(SubflowError::Tts(last_err.unwrap_or_else(|| "Edge TTS failed after retries".to_string())))
         })
         .await
         .map_err(|e| SubflowError::Tts(format!("TTS task join error: {}", e)))?

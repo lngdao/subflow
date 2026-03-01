@@ -8,8 +8,11 @@
   "permissions": [
     "core:default",
     "shell:default",
+    "shell:allow-open",
     "dialog:default",
     "fs:default",
+    "fs:allow-mkdir",
+    "fs:allow-exists",
     "core:event:default"
   ]
 }

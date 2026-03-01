@@ -1,3 +1,4 @@
+mod binary_manager;
 mod commands;
 mod config;
 mod error;
@@ -34,11 +35,18 @@ pub fn run() {
             queue_cmd::cancel_task,
             queue_cmd::pause_task,
             queue_cmd::resume_task,
+            queue_cmd::retry_task,
+            queue_cmd::remove_task,
             queue_cmd::get_tasks,
             settings_cmd::get_settings,
             settings_cmd::save_settings,
             settings_cmd::save_api_key,
+            settings_cmd::get_api_key_preview,
             settings_cmd::test_provider_connection,
+            settings_cmd::ensure_directory,
+            settings_cmd::open_folder,
+            settings_cmd::setup_binaries,
+            settings_cmd::get_binary_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

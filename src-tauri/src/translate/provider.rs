@@ -26,12 +26,12 @@ pub fn create_provider(
     model: Option<&str>,
 ) -> Result<Box<dyn TranslationProvider>> {
     match provider_name {
-        "claude" => Ok(Box::new(super::claude::ClaudeProvider::new(
+        "claude" | "anthropic" => Ok(Box::new(super::claude::ClaudeProvider::new(
             api_key,
             base_url,
             model,
         ))),
-        "openai" => Ok(Box::new(super::openai::OpenAIProvider::new(
+        "openai" | "openai_compatible" => Ok(Box::new(super::openai::OpenAIProvider::new(
             api_key,
             base_url,
             model,

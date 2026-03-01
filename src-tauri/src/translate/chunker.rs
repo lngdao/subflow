@@ -26,6 +26,12 @@ pub fn build_prompt(texts: &[String], source_lang: &str, target_lang: &str) -> S
         .map(|(i, text)| format!("{}. {}", i + 1, text))
         .collect();
 
+    let source_instruction = if source_lang == "auto" {
+        "the auto-detected source language".to_string()
+    } else {
+        source_lang.to_string()
+    };
+
     format!(
         "You are a professional subtitle translator. Translate the following subtitles from {} to {}.\n\n\
         IMPORTANT RULES:\n\
@@ -37,7 +43,7 @@ pub fn build_prompt(texts: &[String], source_lang: &str, target_lang: &str) -> S
         6. Output ONLY the translated lines, one per line, numbered to match input.\n\n\
         Input subtitles:\n{}\n\n\
         Output ONLY the translated lines, numbered to match:",
-        source_lang,
+        source_instruction,
         target_lang,
         target_lang,
         numbered_lines.join("\n")

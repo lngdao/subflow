@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::error::{Result, SubflowError};
@@ -23,6 +24,9 @@ pub struct TranslationConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TtsConfig {
     pub provider: String,
+    #[serde(default)]
+    pub voices: HashMap<String, String>,
+    #[serde(skip_serializing, default)]
     pub voice: Option<String>,
     pub speed: f32,
 }
@@ -45,12 +49,13 @@ impl Default for AppConfig {
                 provider: "claude".to_string(),
                 base_url: None,
                 model: Some("claude-haiku-4-5-20251001".to_string()),
-                source_lang: "en".to_string(),
+                source_lang: "auto".to_string(),
                 target_langs: vec!["vi".to_string()],
             },
             tts: TtsConfig {
                 provider: "edge".to_string(),
-                voice: Some("en-US-AriaNeural".to_string()),
+                voices: HashMap::new(),
+                voice: None,
                 speed: 1.0,
             },
             output: OutputConfig {
@@ -77,12 +82,33 @@ fn config_path() -> PathBuf {
         .join("config.json")
 }
 
+fn infer_lang_from_voice(voice: &str) -> &str {
+    // Voice names follow pattern: "xx-XX-NameNeural"
+    // Extract the language prefix (e.g., "vi" from "vi-VN-HoaiMyNeural")
+    if let Some(dash) = voice.find('-') {
+        &voice[..dash]
+    } else {
+        "en"
+    }
+}
+
 impl AppConfig {
     pub fn load() -> Result<Self> {
         let path = config_path();
         if path.exists() {
             let contents = std::fs::read_to_string(&path)?;
-            serde_json::from_str(&contents).map_err(|e| SubflowError::Config(e.to_string()))
+            let mut config: AppConfig =
+                serde_json::from_str(&contents).map_err(|e| SubflowError::Config(e.to_string()))?;
+
+            // Migrate old single-voice to per-language voices map
+            if config.tts.voices.is_empty() {
+                if let Some(ref voice) = config.tts.voice {
+                    let lang = infer_lang_from_voice(voice);
+                    config.tts.voices.insert(lang.to_string(), voice.clone());
+                }
+            }
+
+            Ok(config)
         } else {
             Ok(Self::default())
         }

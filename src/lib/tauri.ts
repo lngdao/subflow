@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { AppConfig, SubtitleFile, Task, VideoMetadata, VoiceInfo } from "./types";
+import type { AppConfig, BinaryStatus, SubtitleFile, Task, VideoMetadata, VoiceInfo } from "./types";
 
 export async function downloadSubtitle(url: string, outputDir: string, lang?: string) {
   return invoke<string>("download_subtitle", { url, outputDir, lang });
@@ -34,8 +34,9 @@ export async function addTask(
   filePath?: string,
   sourceLang?: string,
   targetLangs?: string[],
+  mode?: string,
 ) {
-  return invoke<string>("add_task", { url, filePath, sourceLang, targetLangs });
+  return invoke<string>("add_task", { url, filePath, sourceLang, targetLangs, mode });
 }
 
 export async function cancelTask(taskId: string) {
@@ -48,6 +49,14 @@ export async function pauseTask(taskId: string) {
 
 export async function resumeTask(taskId: string) {
   return invoke<void>("resume_task", { taskId });
+}
+
+export async function retryTask(taskId: string) {
+  return invoke<void>("retry_task", { taskId });
+}
+
+export async function removeTask(taskId: string) {
+  return invoke<void>("remove_task", { taskId });
 }
 
 export async function getTasks() {
@@ -66,6 +75,10 @@ export async function saveApiKey(provider: string, apiKey: string) {
   return invoke<void>("save_api_key", { provider, apiKey });
 }
 
+export async function getApiKeyPreview(provider: string) {
+  return invoke<string | null>("get_api_key_preview", { provider });
+}
+
 export async function testProviderConnection(
   provider: string,
   apiKey: string,
@@ -73,4 +86,12 @@ export async function testProviderConnection(
   model?: string,
 ) {
   return invoke<boolean>("test_provider_connection", { provider, apiKey, baseUrl, model });
+}
+
+export async function setupBinaries() {
+  return invoke<BinaryStatus>("setup_binaries");
+}
+
+export async function getBinaryStatus() {
+  return invoke<BinaryStatus>("get_binary_status");
 }

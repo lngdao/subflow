@@ -1,4 +1,5 @@
 export const LANGUAGES = [
+  { code: "auto", name: "Auto Detect" },
   { code: "vi", name: "Vietnamese" },
   { code: "ja", name: "Japanese" },
   { code: "ko", name: "Korean" },
@@ -17,10 +18,12 @@ export const TRANSLATION_PROVIDERS = [
   { id: "openai", name: "OpenAI GPT-4o", hasApiKey: true, hasBaseUrl: true, hasModel: true },
   { id: "gemini", name: "Gemini Flash", hasApiKey: true, hasBaseUrl: false, hasModel: true },
   { id: "deepl", name: "DeepL", hasApiKey: true, hasBaseUrl: false, hasModel: false },
+  { id: "openai_compatible", name: "OpenAI Compatible", hasApiKey: true, hasBaseUrl: true, hasModel: true },
+  { id: "anthropic", name: "Anthropic Messages", hasApiKey: true, hasBaseUrl: true, hasModel: true },
 ] as const;
 
 export const TTS_PROVIDERS = [
-  { id: "edge", name: "Edge TTS (Free)", hasApiKey: false },
+  { id: "edge", name: "Edge TTS", hasApiKey: false },
   { id: "openai", name: "OpenAI TTS", hasApiKey: true },
 ] as const;
 
@@ -31,4 +34,4 @@ export const OUTPUT_FORMATS = [
 ] as const;
 
 export const YOUTUBE_URL_REGEX =
-  /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[&?].*)?/;

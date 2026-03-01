@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::queue::types::TaskStatus;
+use crate::queue::types::{ProcessingMode, TaskStatus};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
@@ -12,6 +12,7 @@ pub struct Task {
     pub video_id: Option<String>,
     pub source_lang: String,
     pub target_langs: Vec<String>,
+    pub mode: ProcessingMode,
     pub status: TaskStatus,
     pub progress: f32,
     pub message: String,
@@ -23,7 +24,7 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn new_from_url(url: &str, source_lang: &str, target_langs: Vec<String>) -> Self {
+    pub fn new_from_url(url: &str, source_lang: &str, target_langs: Vec<String>, mode: ProcessingMode) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             url: Some(url.to_string()),
@@ -32,6 +33,7 @@ impl Task {
             video_id: None,
             source_lang: source_lang.to_string(),
             target_langs,
+            mode,
             status: TaskStatus::Queued,
             progress: 0.0,
             message: "Queued".to_string(),
@@ -47,6 +49,7 @@ impl Task {
         file_path: &str,
         source_lang: &str,
         target_langs: Vec<String>,
+        mode: ProcessingMode,
     ) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
@@ -56,6 +59,7 @@ impl Task {
             video_id: None,
             source_lang: source_lang.to_string(),
             target_langs,
+            mode,
             status: TaskStatus::Queued,
             progress: 0.0,
             message: "Queued".to_string(),

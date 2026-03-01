@@ -1,15 +1,40 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Check, Loader2 } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useUiStore } from "@/stores/useUiStore";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { TRANSLATION_PROVIDERS, TTS_PROVIDERS, OUTPUT_FORMATS, LANGUAGES } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/animate-ui/components/radix/sheet";
+import { TRANSLATION_PROVIDERS, TTS_PROVIDERS } from "@/lib/constants";
+import { getApiKeyPreview } from "@/lib/tauri";
 import type { AppConfig } from "@/lib/types";
 
+const APP_LANGUAGES = [
+  { value: "vi", label: "Tiếng Việt" },
+  { value: "en", label: "English" },
+];
+
 export function SettingsPanel() {
-  const { settings, loadSettings, saveSettings, testConnection, saveApiKey } = useSettingsStore();
+  const { t, i18n } = useTranslation();
+  const { settings, loadSettings, saveSettings, testConnection, saveApiKey } =
+    useSettingsStore();
+  const isSettingsOpen = useUiStore((s) => s.isSettingsOpen);
   const closeSettings = useUiStore((s) => s.closeSettings);
   const [local, setLocal] = useState<AppConfig | null>(null);
   const [apiKey, setApiKey] = useState("");
@@ -17,6 +42,10 @@ export function SettingsPanel() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
+  const [apiKeyPreview, setApiKeyPreview] = useState<string | null>(null);
+  const [ttsKeyPreview, setTtsKeyPreview] = useState<string | null>(null);
+  const [editingApiKey, setEditingApiKey] = useState(false);
+  const [editingTtsKey, setEditingTtsKey] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -25,6 +54,19 @@ export function SettingsPanel() {
   useEffect(() => {
     if (settings) setLocal(settings);
   }, [settings]);
+
+  useEffect(() => {
+    if (local) {
+      getApiKeyPreview(local.translation.provider)
+        .then(setApiKeyPreview)
+        .catch(() => setApiKeyPreview(null));
+      if (local.tts.provider !== "edge") {
+        getApiKeyPreview(`${local.tts.provider}_tts`)
+          .then(setTtsKeyPreview)
+          .catch(() => setTtsKeyPreview(null));
+      }
+    }
+  }, [local?.translation.provider, local?.tts.provider]);
 
   const handleSave = useCallback(async () => {
     if (!local) return;
@@ -62,84 +104,166 @@ export function SettingsPanel() {
     }
   }, [local, apiKey, testConnection]);
 
+  const handleLanguageChange = useCallback(
+    (lang: string) => {
+      i18n.changeLanguage(lang);
+      localStorage.setItem("subflow_language", lang);
+    },
+    [i18n],
+  );
+
   if (!local) return null;
 
-  const selectedProvider = TRANSLATION_PROVIDERS.find((p) => p.id === local.translation.provider);
+  const selectedProvider = TRANSLATION_PROVIDERS.find(
+    (p) => p.id === local.translation.provider,
+  );
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={closeSettings} />
+    <Sheet open={isSettingsOpen} onOpenChange={(open) => !open && closeSettings()}>
+      <SheetContent side="right" showCloseButton={false} className="w-full max-w-md overflow-y-auto">
+        <SheetHeader className="flex-row items-center justify-between">
+          <SheetTitle>{t("settings.title")}</SheetTitle>
+          <SheetDescription className="sr-only">
+            Configure application settings
+          </SheetDescription>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={handleSave}
+              disabled={saving}
+              title={t("settings.done")}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={closeSettings}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </SheetHeader>
 
-      {/* Panel */}
-      <div className="relative w-full max-w-md bg-bg-primary border-l border-border-subtle overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-bg-primary/95 backdrop-blur-sm border-b border-border-subtle px-6 py-4 flex items-center justify-between z-10">
-          <button onClick={closeSettings} className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Settings</span>
-          </button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Done"}
-          </Button>
-        </div>
+        <div className="px-4 pb-6 space-y-6">
+          {/* Language Switcher */}
+          <section>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+              {t("settings.language")}
+            </Label>
+            <Select
+              value={i18n.language}
+              onValueChange={handleLanguageChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {APP_LANGUAGES.map((l) => (
+                  <SelectItem key={l.value} value={l.value}>
+                    {l.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </section>
 
-        <div className="px-6 py-6 space-y-8">
+          <Separator />
+
           {/* Translation Section */}
           <section>
-            <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-4">
-              Translation
-            </h3>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+              {t("settings.translation")}
+            </Label>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-text-secondary mb-1.5 block">Provider</label>
+                <Label className="text-sm text-secondary-foreground mb-1.5">
+                  {t("settings.provider")}
+                </Label>
                 <Select
                   value={local.translation.provider}
-                  onChange={(e) =>
+                  onValueChange={(v) => {
                     setLocal({
                       ...local,
-                      translation: { ...local.translation, provider: e.target.value },
-                    })
-                  }
-                  options={TRANSLATION_PROVIDERS.map((p) => ({ value: p.id, label: p.name }))}
-                />
+                      translation: { ...local.translation, provider: v },
+                    });
+                    setApiKey("");
+                    setEditingApiKey(false);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRANSLATION_PROVIDERS.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <label className="text-sm text-text-secondary mb-1.5 block">API Key</label>
-                <div className="flex gap-2">
-                  <Input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter API key..."
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleTest}
-                    disabled={testing || !apiKey}
-                  >
-                    {testing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : testResult === true ? (
-                      <Check className="w-4 h-4 text-accent-success" />
-                    ) : (
-                      "Test"
-                    )}
-                  </Button>
-                </div>
+                <Label className="text-sm text-secondary-foreground mb-1.5">
+                  {t("settings.apiKey")}
+                </Label>
+                {apiKeyPreview && !editingApiKey ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 rounded-md bg-secondary border border-border px-3 py-2 text-sm text-muted-foreground font-mono">
+                      {apiKeyPreview}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingApiKey(true)}
+                    >
+                      {t("settings.change")}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="Enter API key..."
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTest}
+                      disabled={testing || !apiKey}
+                    >
+                      {testing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : testResult === true ? (
+                        <Check className="w-4 h-4 text-accent-success" />
+                      ) : (
+                        t("settings.test")
+                      )}
+                    </Button>
+                  </div>
+                )}
                 {testResult === false && (
-                  <p className="text-xs text-accent-error mt-1">Connection failed</p>
+                  <p className="text-xs text-destructive mt-1">
+                    Connection failed
+                  </p>
                 )}
               </div>
 
               {selectedProvider?.hasBaseUrl && (
                 <div>
-                  <label className="text-sm text-text-secondary mb-1.5 block">
-                    Base URL <span className="text-text-tertiary">(optional)</span>
-                  </label>
+                  <Label className="text-sm text-secondary-foreground mb-1.5">
+                    {t("settings.baseUrl")}{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </Label>
                   <Input
                     value={local.translation.base_url || ""}
                     onChange={(e) =>
@@ -158,7 +282,9 @@ export function SettingsPanel() {
 
               {selectedProvider?.hasModel && (
                 <div>
-                  <label className="text-sm text-text-secondary mb-1.5 block">Model</label>
+                  <Label className="text-sm text-secondary-foreground mb-1.5">
+                    {t("settings.model")}
+                  </Label>
                   <Input
                     value={local.translation.model || ""}
                     onChange={(e) =>
@@ -174,172 +300,148 @@ export function SettingsPanel() {
                   />
                 </div>
               )}
-
-              <div>
-                <label className="text-sm text-text-secondary mb-1.5 block">Source Language</label>
-                <Select
-                  value={local.translation.source_lang}
-                  onChange={(e) =>
-                    setLocal({
-                      ...local,
-                      translation: { ...local.translation, source_lang: e.target.value },
-                    })
-                  }
-                  options={LANGUAGES.map((l) => ({ value: l.code, label: l.name }))}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-text-secondary mb-1.5 block">Target Languages</label>
-                <div className="flex flex-wrap gap-2">
-                  {LANGUAGES.filter((l) => l.code !== local.translation.source_lang).map((lang) => {
-                    const selected = local.translation.target_langs.includes(lang.code);
-                    return (
-                      <button
-                        key={lang.code}
-                        onClick={() => {
-                          const langs = selected
-                            ? local.translation.target_langs.filter((c) => c !== lang.code)
-                            : [...local.translation.target_langs, lang.code];
-                          setLocal({
-                            ...local,
-                            translation: { ...local.translation, target_langs: langs },
-                          });
-                        }}
-                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                          selected
-                            ? "border-accent-primary bg-accent-primary/20 text-accent-primary"
-                            : "border-border-subtle text-text-tertiary hover:border-border-focus"
-                        }`}
-                      >
-                        {lang.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           </section>
 
-          <hr className="border-border-subtle" />
+          <Separator />
 
           {/* TTS Section */}
           <section>
-            <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-4">
-              TTS
-            </h3>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+              {t("settings.tts")}
+            </Label>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-text-secondary mb-1.5 block">Provider</label>
+                <Label className="text-sm text-secondary-foreground mb-1.5">
+                  {t("settings.provider")}
+                </Label>
                 <Select
                   value={local.tts.provider}
-                  onChange={(e) =>
-                    setLocal({ ...local, tts: { ...local.tts, provider: e.target.value } })
+                  onValueChange={(v) =>
+                    setLocal({
+                      ...local,
+                      tts: { ...local.tts, provider: v },
+                    })
                   }
-                  options={TTS_PROVIDERS.map((p) => ({ value: p.id, label: p.name }))}
-                />
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TTS_PROVIDERS.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {local.tts.provider !== "edge" && (
                 <div>
-                  <label className="text-sm text-text-secondary mb-1.5 block">API Key</label>
-                  <Input
-                    type="password"
-                    value={ttsApiKey}
-                    onChange={(e) => setTtsApiKey(e.target.value)}
-                    placeholder="Enter TTS API key..."
-                  />
+                  <Label className="text-sm text-secondary-foreground mb-1.5">
+                    {t("settings.apiKey")}
+                  </Label>
+                  {ttsKeyPreview && !editingTtsKey ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 rounded-md bg-secondary border border-border px-3 py-2 text-sm text-muted-foreground font-mono">
+                        {ttsKeyPreview}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingTtsKey(true)}
+                      >
+                        {t("settings.change")}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Input
+                      type="password"
+                      value={ttsApiKey}
+                      onChange={(e) => setTtsApiKey(e.target.value)}
+                      placeholder="Enter TTS API key..."
+                    />
+                  )}
                 </div>
               )}
-
-              <div>
-                <label className="text-sm text-text-secondary mb-1.5 block">Voice</label>
-                <Input
-                  value={local.tts.voice || ""}
-                  onChange={(e) =>
-                    setLocal({ ...local, tts: { ...local.tts, voice: e.target.value || null } })
-                  }
-                  placeholder="e.g., en-US-AriaNeural"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-text-secondary mb-1.5 block">
-                  Speed ({local.tts.speed.toFixed(1)}x)
-                </label>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="2.0"
-                  step="0.1"
-                  value={local.tts.speed}
-                  onChange={(e) =>
-                    setLocal({ ...local, tts: { ...local.tts, speed: parseFloat(e.target.value) } })
-                  }
-                  className="w-full accent-accent-primary"
-                />
-              </div>
             </div>
           </section>
 
-          <hr className="border-border-subtle" />
+          <Separator />
 
           {/* Output Section */}
           <section>
-            <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-4">
-              Output
-            </h3>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+              {t("settings.output")}
+            </Label>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-text-secondary mb-1.5 block">Format</label>
-                  <Select
-                    value={local.output.format}
-                    onChange={(e) =>
-                      setLocal({ ...local, output: { ...local.output, format: e.target.value } })
-                    }
-                    options={OUTPUT_FORMATS.map((f) => ({ value: f.id, label: f.name }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-text-secondary mb-1.5 block">Parallel Jobs</label>
-                  <Select
-                    value={String(local.queue.parallel_jobs)}
-                    onChange={(e) =>
-                      setLocal({
-                        ...local,
-                        queue: { ...local.queue, parallel_jobs: parseInt(e.target.value) },
-                      })
-                    }
-                    options={[1, 2, 3, 4, 6, 8].map((n) => ({
-                      value: String(n),
-                      label: String(n),
-                    }))}
-                  />
-                </div>
+              <div>
+                <Label className="text-sm text-secondary-foreground mb-1.5">
+                  {t("settings.parallelJobs")}
+                </Label>
+                <Select
+                  value={String(local.queue.parallel_jobs)}
+                  onValueChange={(v) =>
+                    setLocal({
+                      ...local,
+                      queue: {
+                        ...local.queue,
+                        parallel_jobs: parseInt(v),
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 6, 8].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <label className="text-sm text-text-secondary mb-1.5 block">Output Folder</label>
+                <Label className="text-sm text-secondary-foreground mb-1.5">
+                  {t("settings.folder")}
+                </Label>
                 <div className="flex gap-2">
                   <Input
                     value={local.output.folder}
                     onChange={(e) =>
-                      setLocal({ ...local, output: { ...local.output, folder: e.target.value } })
+                      setLocal({
+                        ...local,
+                        output: {
+                          ...local.output,
+                          folder: e.target.value,
+                        },
+                      })
                     }
                     className="font-mono text-xs"
                   />
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
                     onClick={async () => {
                       try {
-                        const { open } = await import("@tauri-apps/plugin-dialog");
+                        const { open } = await import(
+                          "@tauri-apps/plugin-dialog"
+                        );
                         const dir = await open({ directory: true });
                         if (dir) {
-                          setLocal({ ...local, output: { ...local.output, folder: dir as string } });
+                          setLocal({
+                            ...local,
+                            output: {
+                              ...local.output,
+                              folder: dir as string,
+                            },
+                          });
                         }
                       } catch {
                         // Cancelled
@@ -353,7 +455,7 @@ export function SettingsPanel() {
             </div>
           </section>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

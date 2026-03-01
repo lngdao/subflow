@@ -3,11 +3,11 @@ import { FileDown, Plus } from "lucide-react";
 import { clsx } from "clsx";
 import { useDropZone } from "@/hooks/useDropZone";
 import { useTaskStore } from "@/stores/useTaskStore";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { YOUTUBE_URL_REGEX } from "@/lib/constants";
 
 export function DropZone() {
-  const { isDragging, handleDragOver, handleDragLeave, handleDrop } = useDropZone();
+  const { isDragging, handleDragOver, handleDragLeave, extractPaths } = useDropZone();
   const addTask = useTaskStore((s) => s.addTask);
   const [urlInput, setUrlInput] = useState("");
 
@@ -64,7 +64,17 @@ export function DropZone() {
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDrop={(e) => {
+          const paths = extractPaths(e);
+          for (const p of paths) {
+            addTask(undefined, p);
+          }
+          // Check for text (URL)
+          const text = e.dataTransfer?.getData("text/plain");
+          if (text && YOUTUBE_URL_REGEX.test(text)) {
+            addTask(text);
+          }
+        }}
         className={clsx(
           "w-full max-w-lg border-2 border-dashed rounded-[16px] p-8 text-center transition-all duration-200",
           isDragging
