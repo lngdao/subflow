@@ -1,20 +1,31 @@
 # Changelog
 
-## v0.2.1 - CI/CD + Cross-Platform Builds (2026-03-02)
+## v0.2.1 - UX Polish + Notifications (2026-03-02)
 
 ### Added
+- Splash screen with fade-out animation on app startup
+- Update checker: fetches latest release from GitHub, shows orange indicator + changelog in deps modal, "Check for updates" button
+- System notifications (via `tauri-plugin-notification`) when tasks complete or fail, with toggle in Settings
+- Task duration display on completed TaskCard (e.g. "45s", "2m 13s")
+- `started_at` timestamp on Task (Rust + frontend) — set when processing begins after semaphore acquire
+- Searchable dropdowns: source language, voice selector, translation provider now have inline search input
+- Version synced from `tauri.conf.json` at build time via Vite `define` — single source of truth for app version
+- Release script auto-bumps version in `tauri.conf.json` + `Cargo.toml` before tagging
 - GitHub Actions release workflow with auto-build on tag push
 - Cross-platform builds: Windows (x86_64, ARM64), macOS (Apple Silicon, Intel), Linux (x86_64, ARM64)
 - Auto-generated changelog from CHANGELOG.md in GitHub Releases
-- Auto-sync version from git tag into Tauri config
-
-### Fixed
-- UI component file casing for Linux case-sensitive filesystem
-- OpenSSL dependency for macOS x86_64 cross-compile
 
 ### Changed
+- "Open Folder" renamed to "Reveal in Folder" on TaskCard context menu
+- Context menu "Reveal in Folder" now always visible (disabled when no output dir)
+- Removed white borders from context menus, sheets, and select dropdowns
 - Removed `tsc` type-check from build command (Vite/esbuild handles transpilation)
 - Relaxed TypeScript strict mode for CI compatibility
+
+### Fixed
+- Searchable select uses `position="popper"` to prevent dropdown from collapsing when filtering items
+- UI component file casing for Linux case-sensitive filesystem
+- OpenSSL dependency for macOS x86_64 cross-compile
 
 ---
 

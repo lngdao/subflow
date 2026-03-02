@@ -19,9 +19,12 @@ sed -i '' "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" "$ROOT_DIR/src-ta
 # Update version in Cargo.toml
 sed -i '' "s/^version = \".*\"/version = \"${VERSION}\"/" "$ROOT_DIR/src-tauri/Cargo.toml"
 
+# Sync Cargo.lock with new version
+(cd "$ROOT_DIR/src-tauri" && cargo generate-lockfile)
+
 # Commit version bump if there are changes
 if ! git diff --quiet; then
-  git add "$ROOT_DIR/src-tauri/tauri.conf.json" "$ROOT_DIR/src-tauri/Cargo.toml"
+  git add "$ROOT_DIR/src-tauri/tauri.conf.json" "$ROOT_DIR/src-tauri/Cargo.toml" "$ROOT_DIR/src-tauri/Cargo.lock"
   git commit -m "chore: bump version to ${VERSION}"
 fi
 
