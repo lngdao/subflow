@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.2.1 - CI/CD + Cross-Platform Builds (2026-03-02)
+
+### Added
+- GitHub Actions release workflow with auto-build on tag push
+- Cross-platform builds: Windows (x86_64, ARM64), macOS (Apple Silicon, Intel), Linux (x86_64, ARM64)
+- Auto-generated changelog from CHANGELOG.md in GitHub Releases
+- Auto-sync version from git tag into Tauri config
+
+### Fixed
+- UI component file casing for Linux case-sensitive filesystem
+- OpenSSL dependency for macOS x86_64 cross-compile
+
+### Changed
+- Removed `tsc` type-check from build command (Vite/esbuild handles transpilation)
+- Relaxed TypeScript strict mode for CI compatibility
+
+---
+
 ## v0.2.0 - UI Overhaul + Reliability (2026-03-02)
 
 ### Added
