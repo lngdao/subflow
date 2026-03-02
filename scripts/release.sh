@@ -28,13 +28,19 @@ if ! git diff --quiet; then
   git commit -m "chore: bump version to ${VERSION}"
 fi
 
-# Check if tag already exists
-if git rev-parse "$TAG" >/dev/null 2>&1; then
-  echo "Tag $TAG already exists. Deleting..."
-  gh release delete "$TAG" --yes 2>/dev/null || true
-  git push origin ":refs/tags/$TAG" 2>/dev/null || true
+# Clean up existing release + tag completely
+if gh release view "$TAG" &>/dev/null; then
+  echo "Deleting existing release $TAG..."
+  gh release delete "$TAG" --cleanup-tag --yes
+  # Wait for GitHub to fully process the deletion
+  sleep 3
+fi
+
+# Also clean up local/remote tag if it still exists
+if git rev-parse "$TAG" &>/dev/null; then
   git tag -d "$TAG" 2>/dev/null || true
 fi
+git push origin ":refs/tags/$TAG" 2>/dev/null || true
 
 echo "Creating tag $TAG..."
 git tag "$TAG"

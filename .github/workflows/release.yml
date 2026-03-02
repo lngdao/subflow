@@ -47,6 +47,7 @@ jobs:
           body_path: changelog.txt
           draft: false
           prerelease: false
+          make_latest: true
 
   build:
     needs: create-release
