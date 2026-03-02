@@ -91,3 +91,13 @@ pub async fn setup_binaries() -> Result<binary_manager::BinaryStatus, SubflowErr
 pub async fn get_binary_status() -> Result<binary_manager::BinaryStatus, SubflowError> {
     Ok(binary_manager::check_status().await)
 }
+
+#[tauri::command]
+pub async fn download_nllb_model(app_handle: tauri::AppHandle) -> Result<(), SubflowError> {
+    crate::model_manager::download_nllb_model(app_handle).await
+}
+
+#[tauri::command]
+pub async fn delete_nllb_model() -> Result<(), SubflowError> {
+    crate::model_manager::delete_nllb_model()
+}

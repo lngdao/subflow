@@ -9,7 +9,7 @@
     "queue": "Hàng đợi"
   },
   "source": {
-    "placeholder": "Dán URL YouTube vào đây...",
+    "placeholder": "Dán URL video vào đây (YouTube, Vimeo, v.v.)...",
     "add": "Thêm",
     "browse": "Duyệt tệp"
   },
@@ -48,7 +48,11 @@
     "notifications": "Thông báo",
     "notifyOnComplete": "Thông báo khi tác vụ hoàn thành hoặc lỗi",
     "keySet": "Đã lưu",
-    "keyNotSet": "Chưa có"
+    "keyNotSet": "Chưa có",
+    "performance": "Hiệu suất",
+    "parallelLangs": "Ngôn ngữ song song",
+    "pipelineTts": "Pipeline TTS (dịch → TTS từng phần)",
+    "ttsChunkSize": "Kích thước chunk TTS"
   },
   "task": {
     "queued": "Đang chờ",
@@ -64,7 +68,10 @@
     "resume": "Tiếp tục",
     "retry": "Thử lại",
     "openFolder": "Hiển thị trong thư mục",
-    "remove": "Xóa khỏi hàng đợi"
+    "remove": "Xóa khỏi hàng đợi",
+    "modeSubOnly": "Phụ đề",
+    "modeSubTranslate": "Phụ đề+Dịch",
+    "modeSubTranslateTts": "Phụ đề+Dịch+TTS"
   },
   "toolbar": {
     "settings": "Cài đặt",
@@ -80,7 +87,14 @@
     "installing": "Đang cài...",
     "retry": "Thử lại",
     "allGood": "Tất cả phụ thuộc đã sẵn sàng.",
-    "missingDeps": "Thiếu phụ thuộc"
+    "missingDeps": "Thiếu phụ thuộc",
+    "nllbModel": "Model dịch NLLB",
+    "nllbModelDesc": "Model cục bộ (~2.5 GB)",
+    "nllbDownload": "Tải xuống",
+    "nllbDownloading": "Đang tải...",
+    "nllbDelete": "Xóa",
+    "nllbReady": "Sẵn sàng",
+    "nllbNotDownloaded": "Chưa tải"
   },
   "log": {
     "title": "Nhật ký",
@@ -90,7 +104,8 @@
   "dropzone": {
     "dropFiles": "Kéo thả tệp vào đây",
     "orPaste": "hoặc dán URL YouTube",
-    "supported": "hỗ trợ: .srt .vtt .txt"
+    "supported": "hỗ trợ: .srt .vtt .txt",
+    "browse": "Chọn tệp"
   },
   "queue": {
     "title": "Hàng đợi",

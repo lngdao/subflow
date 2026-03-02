@@ -13,6 +13,8 @@ interface UiStore {
   logs: LogEntry[];
   appReady: boolean;
   splashVisible: boolean;
+  tabActionTrigger: number;
+  addActionEnabled: boolean;
   openSettings: () => void;
   closeSettings: () => void;
   toggleSettings: () => void;
@@ -21,6 +23,8 @@ interface UiStore {
   addLog: (entry: LogEntry) => void;
   clearLogs: () => void;
   setAppReady: () => void;
+  triggerTabAction: () => void;
+  setAddActionEnabled: (enabled: boolean) => void;
 }
 
 export const useUiStore = create<UiStore>((set) => ({
@@ -30,6 +34,8 @@ export const useUiStore = create<UiStore>((set) => ({
   logs: [],
   appReady: false,
   splashVisible: true,
+  tabActionTrigger: 0,
+  addActionEnabled: false,
   openSettings: () => set({ isSettingsOpen: true }),
   closeSettings: () => set({ isSettingsOpen: false }),
   toggleSettings: () => set((s) => ({ isSettingsOpen: !s.isSettingsOpen })),
@@ -42,4 +48,6 @@ export const useUiStore = create<UiStore>((set) => ({
     set({ appReady: true });
     setTimeout(() => set({ splashVisible: false }), 600);
   },
+  triggerTabAction: () => set((s) => ({ tabActionTrigger: s.tabActionTrigger + 1 })),
+  setAddActionEnabled: (enabled) => set({ addActionEnabled: enabled }),
 }));

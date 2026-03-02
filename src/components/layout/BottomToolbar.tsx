@@ -10,16 +10,18 @@ import {
   X,
   ExternalLink,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useUiStore } from "@/stores/useUiStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { BinaryStatus } from "@/lib/types";
+import type { BinaryStatus, ModelDownloadProgress } from "@/lib/types";
 import * as api from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +33,8 @@ export function BottomToolbar() {
   const [binStatus, setBinStatus] = useState<BinaryStatus | null>(null);
   const [showDepsModal, setShowDepsModal] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [nllbDownloading, setNllbDownloading] = useState(false);
+  const [nllbProgress, setNllbProgress] = useState<ModelDownloadProgress | null>(null);
   const { update, checking, checkNow } = useUpdateChecker();
 
   const allOk =
@@ -44,6 +48,20 @@ export function BottomToolbar() {
   // Load status on mount
   useEffect(() => {
     api.getBinaryStatus().then(setBinStatus).catch(console.error);
+  }, []);
+
+  // Listen for NLLB model download progress
+  useEffect(() => {
+    const unlisten = listen<ModelDownloadProgress>("model-download-progress", (event) => {
+      setNllbProgress(event.payload);
+      if (event.payload.status === "completed" && event.payload.file === "config.json") {
+        // Last file completed, refresh status
+        setNllbDownloading(false);
+        setNllbProgress(null);
+        api.getBinaryStatus().then(setBinStatus).catch(console.error);
+      }
+    });
+    return () => { unlisten.then((fn) => fn()); };
   }, []);
 
   const handleInstall = useCallback(async () => {
@@ -61,6 +79,35 @@ export function BottomToolbar() {
       setInstalling(false);
     }
   }, [t]);
+
+  const handleDownloadNllb = useCallback(async () => {
+    setNllbDownloading(true);
+    setNllbProgress(null);
+    try {
+      await api.downloadNllbModel();
+      const status = await api.getBinaryStatus();
+      setBinStatus(status);
+      toast.success("NLLB model downloaded");
+    } catch (e) {
+      console.error("NLLB download failed:", e);
+      toast.error(`NLLB download failed: ${e}`);
+    } finally {
+      setNllbDownloading(false);
+      setNllbProgress(null);
+    }
+  }, []);
+
+  const handleDeleteNllb = useCallback(async () => {
+    try {
+      await api.deleteNllbModel();
+      const status = await api.getBinaryStatus();
+      setBinStatus(status);
+      toast.success("NLLB model deleted");
+    } catch (e) {
+      console.error("NLLB delete failed:", e);
+      toast.error(`Delete failed: ${e}`);
+    }
+  }, []);
 
   const handleOpenFolder = async () => {
     const folder = settings?.output.folder;
@@ -222,6 +269,74 @@ export function BottomToolbar() {
                 path={binStatus?.ffmpeg_path}
                 t={t}
               />
+
+              {/* NLLB Model */}
+              <div className="rounded-lg bg-secondary/50 px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">
+                        {t("deps.nllbModel")}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {t("deps.nllbModelDesc")}
+                      </span>
+                    </div>
+                    {binStatus?.nllb_model_path && (
+                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                        {binStatus.nllb_model_path}
+                      </p>
+                    )}
+                    {nllbDownloading && nllbProgress && (
+                      <div className="mt-1.5">
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                          <span>{nllbProgress.file}</span>
+                          <span>{Math.round(nllbProgress.percent)}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all duration-300"
+                            style={{ width: `${nllbProgress.percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="ml-3 flex-shrink-0">
+                    {binStatus?.nllb_model_available ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 text-emerald-500">
+                          <Check className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-medium">{t("deps.nllbReady")}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={handleDeleteNllb}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : nllbDownloading ? (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span className="text-[10px] font-medium">{t("deps.nllbDownloading")}</span>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[10px] px-2"
+                        onClick={handleDownloadNllb}
+                      >
+                        <Download className="w-3 h-3" />
+                        {t("deps.nllbDownload")}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {hasMissing && (

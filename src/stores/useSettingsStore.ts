@@ -38,6 +38,9 @@ const DEFAULT_SETTINGS: AppConfig = {
   },
   queue: {
     parallel_jobs: 2,
+    parallel_langs: 2,
+    pipeline_tts: true,
+    tts_chunk_size: 500,
   },
   notifications: {
     enabled: true,
@@ -61,6 +64,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       // Ensure notifications field exists (migration from old config)
       if (!settings.notifications) {
         settings.notifications = { enabled: true };
+      }
+      // Ensure new queue fields exist (migration from old config)
+      if (settings.queue.parallel_langs === undefined) {
+        settings.queue.parallel_langs = 2;
+      }
+      if (settings.queue.pipeline_tts === undefined) {
+        settings.queue.pipeline_tts = true;
+      }
+      if (settings.queue.tts_chunk_size === undefined) {
+        settings.queue.tts_chunk_size = 500;
       }
       set({ settings, loading: false });
     } catch {

@@ -89,6 +89,9 @@ export interface OutputConfig {
 
 export interface QueueConfig {
   parallel_jobs: number;
+  parallel_langs: number;
+  pipeline_tts: boolean;
+  tts_chunk_size: number;
 }
 
 export interface NotificationConfig {
@@ -115,4 +118,15 @@ export interface BinaryStatus {
   ffmpeg_available: boolean;
   ytdlp_path: string | null;
   ffmpeg_path: string | null;
+  nllb_model_available: boolean;
+  nllb_model_path: string | null;
+}
+
+export interface ModelDownloadProgress {
+  model: string;
+  file: string;
+  bytes_downloaded: number;
+  bytes_total: number | null;
+  percent: number;
+  status: "downloading" | "completed" | "failed";
 }

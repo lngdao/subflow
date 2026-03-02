@@ -45,6 +45,22 @@ pub fn create_provider(
             model,
         ))),
         "deepl" => Ok(Box::new(super::deepl::DeepLProvider::new(api_key))),
+        "libretranslate" => Ok(Box::new(super::libretranslate::LibreTranslateProvider::new(
+            base_url,
+            Some(api_key).filter(|k| !k.is_empty()),
+        ))),
+        "nllb" => {
+            // Native CTranslate2 provider
+            if !crate::model_manager::is_model_ready() {
+                return Err(crate::error::SubflowError::Translation(
+                    "NLLB model not downloaded. Open Dependencies to download.".into(),
+                ));
+            }
+            // create_provider is sync, but get_or_init_provider is async.
+            // We return a thin wrapper that lazily inits on first translate call.
+            Ok(Box::new(super::nllb_native::NllbNativeLazyProvider))
+        }
+        "nllb_api" => Ok(Box::new(super::nllb::NllbProvider::new(base_url))),
         _ => Err(crate::error::SubflowError::Translation(format!(
             "Unknown provider: {}",
             provider_name

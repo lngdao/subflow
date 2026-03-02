@@ -6,7 +6,7 @@ export async function downloadSubtitle(url: string, outputDir: string, lang?: st
 }
 
 export async function getVideoMetadata(url: string) {
-  return invoke<VideoMetadata>("get_video_metadata", { url });
+  return invoke<VideoMetadata | null>("get_video_metadata", { url });
 }
 
 export async function parseSubtitleFile(path: string) {
@@ -94,4 +94,12 @@ export async function setupBinaries() {
 
 export async function getBinaryStatus() {
   return invoke<BinaryStatus>("get_binary_status");
+}
+
+export async function downloadNllbModel() {
+  return invoke<void>("download_nllb_model");
+}
+
+export async function deleteNllbModel() {
+  return invoke<void>("delete_nllb_model");
 }

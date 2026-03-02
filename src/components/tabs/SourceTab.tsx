@@ -1,13 +1,11 @@
-import { useCallback, useState } from "react";
-import { Plus } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useTaskStore } from "@/stores/useTaskStore";
-import { Button } from "@/components/ui/button";
+import { useUiStore } from "@/stores/useUiStore";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ProcessingConfig } from "@/components/config/ProcessingConfig";
-import { YOUTUBE_URL_REGEX } from "@/lib/constants";
 
 const SOURCE_MODES = [
   { value: "sub_only", key: "config.subOnly" },
@@ -18,8 +16,18 @@ const SOURCE_MODES = [
 export function SourceTab() {
   const { t } = useTranslation();
   const addTask = useTaskStore((s) => s.addTask);
+  const activeTab = useUiStore((s) => s.activeTab);
+  const tabActionTrigger = useUiStore((s) => s.tabActionTrigger);
+  const setAddActionEnabled = useUiStore((s) => s.setAddActionEnabled);
   const [urlInput, setUrlInput] = useState("");
   const [mode, setMode] = useState("sub_translate_tts");
+
+  // Update header Add button enabled state based on input
+  useEffect(() => {
+    if (activeTab === "source") {
+      setAddActionEnabled(urlInput.trim().length > 0);
+    }
+  }, [urlInput, activeTab, setAddActionEnabled]);
 
   const handleAdd = useCallback(async () => {
     const trimmed = urlInput.trim();
@@ -30,23 +38,28 @@ export function SourceTab() {
       .filter(Boolean);
     let added = 0;
     for (const line of lines) {
-      if (YOUTUBE_URL_REGEX.test(line)) {
-        try {
-          await addTask(line, undefined, mode);
-          added++;
-        } catch (e) {
-          console.error("Failed to add task:", e);
-          toast.error(`Failed to add: ${e}`);
-        }
+      try {
+        new URL(line);
+        await addTask(line, undefined, mode);
+        added++;
+      } catch {
+        // skip invalid URLs
       }
     }
     if (added > 0) {
       setUrlInput("");
       toast.success(`Added ${added} task${added > 1 ? "s" : ""}`);
     } else if (lines.length > 0) {
-      toast.error("No valid YouTube URLs found");
+      toast.error("No valid URLs found");
     }
   }, [urlInput, addTask, mode]);
+
+  // Listen for [+] button trigger from AppShell
+  useEffect(() => {
+    if (tabActionTrigger > 0 && activeTab === "source") {
+      handleAdd();
+    }
+  }, [tabActionTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -62,24 +75,14 @@ export function SourceTab() {
     <div className="flex flex-col h-full overflow-y-auto">
       {/* URL Input */}
       <div className="px-5 py-4 border-b border-border">
-        <div className="flex gap-2">
-          <Textarea
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t("source.placeholder")}
-            rows={2}
-            className="flex-1 resize-none font-mono text-sm min-h-0"
-          />
-          <Button
-            onClick={handleAdd}
-            disabled={!urlInput.trim()}
-            className="self-end"
-          >
-            <Plus className="w-4 h-4" />
-            {t("source.add")}
-          </Button>
-        </div>
+        <Textarea
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={t("source.placeholder")}
+          rows={3}
+          className="resize-none font-mono text-sm min-h-0"
+        />
 
         {/* Mode Selection */}
         <div className="mt-4">

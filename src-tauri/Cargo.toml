@@ -1,6 +1,6 @@
 [package]
 name = "subflow"
-version = "0.2.1"
+version = "0.3.0"
 description = "SubFlow - Subtitle Translation Studio"
 authors = ["SubFlow"]
 license = "MIT"
@@ -34,6 +34,8 @@ dirs = "6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 async-trait = "0.1"
+ct2rs = { version = "0.9", features = ["sentencepiece"] }
+futures-util = "0.3"
 openssl = { version = "0.10", features = ["vendored"], optional = true }
 
 [features]

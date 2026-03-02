@@ -15,7 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { Task, TaskStatus } from "@/lib/types";
+import type { Task, TaskStatus, ProcessingMode } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,6 +105,12 @@ function statusBadgeVariant(
   }
 }
 
+const MODE_KEY_MAP: Record<ProcessingMode, string> = {
+  SubOnly: "task.modeSubOnly",
+  SubTranslate: "task.modeSubTranslate",
+  SubTranslateTts: "task.modeSubTranslateTts",
+};
+
 interface TaskCardProps {
   task: Task;
 }
@@ -160,6 +166,9 @@ export function TaskCard({ task }: TaskCardProps) {
             </div>
 
             <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground/70 border border-border rounded px-1 py-0.5">
+                {t(MODE_KEY_MAP[task.mode])}
+              </span>
               <span>{task.source_lang.toUpperCase()}</span>
               <span>&rarr;</span>
               <span>{task.target_langs.map((l) => l.toUpperCase()).join(", ")}</span>

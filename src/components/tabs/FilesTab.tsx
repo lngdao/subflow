@@ -1,10 +1,11 @@
-import { useCallback, useState } from "react";
-import { FileDown, FileText, Play, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { FileDown, FileText, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDropZone } from "@/hooks/useDropZone";
 import { useTaskStore } from "@/stores/useTaskStore";
+import { useUiStore } from "@/stores/useUiStore";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ProcessingConfig } from "@/components/config/ProcessingConfig";
@@ -19,8 +20,18 @@ export function FilesTab() {
   const { isDragging, handleDragOver, handleDragLeave, extractPaths } =
     useDropZone();
   const addTask = useTaskStore((s) => s.addTask);
+  const activeTab = useUiStore((s) => s.activeTab);
+  const tabActionTrigger = useUiStore((s) => s.tabActionTrigger);
+  const setAddActionEnabled = useUiStore((s) => s.setAddActionEnabled);
   const [stagedFiles, setStagedFiles] = useState<string[]>([]);
   const [mode, setMode] = useState("sub_translate_tts");
+
+  // Update header Add button enabled state based on staged files
+  useEffect(() => {
+    if (activeTab === "files") {
+      setAddActionEnabled(stagedFiles.length > 0);
+    }
+  }, [stagedFiles.length, activeTab, setAddActionEnabled]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -53,6 +64,13 @@ export function FilesTab() {
       // Dialog cancelled
     }
   }, []);
+
+  // Listen for [+] button trigger from AppShell — adds staged files to queue
+  useEffect(() => {
+    if (tabActionTrigger > 0 && activeTab === "files") {
+      handleStart();
+    }
+  }, [tabActionTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRemove = useCallback((path: string) => {
     setStagedFiles((prev) => prev.filter((p) => p !== path));
@@ -96,11 +114,16 @@ export function FilesTab() {
         <p className="text-foreground text-sm mb-1">
           {t("dropzone.dropFiles")}
         </p>
-        <p className="text-muted-foreground text-xs mb-3">
+        <p className="text-muted-foreground text-xs">
           {t("dropzone.supported")}
         </p>
-        <Button variant="outline" size="sm" onClick={handleBrowse}>
-          {t("source.browse")}
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3"
+          onClick={handleBrowse}
+        >
+          {t("dropzone.browse")}
         </Button>
       </div>
 
@@ -126,7 +149,7 @@ export function FilesTab() {
             </div>
           ))}
 
-          {/* Mode + Start */}
+          {/* Mode Selection */}
           <div className="pt-2">
             <Label className="text-xs text-muted-foreground mb-2">
               {t("config.mode")}
@@ -146,14 +169,6 @@ export function FilesTab() {
                 </button>
               ))}
             </div>
-            <Button
-              className="w-full mt-5"
-              size="sm"
-              onClick={handleStart}
-            >
-              <Play className="w-3.5 h-3.5" />
-              {t("source.add")} ({stagedFiles.length})
-            </Button>
           </div>
         </div>
       )}

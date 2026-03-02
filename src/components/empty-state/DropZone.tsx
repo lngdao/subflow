@@ -4,7 +4,10 @@ import { clsx } from "clsx";
 import { useDropZone } from "@/hooks/useDropZone";
 import { useTaskStore } from "@/stores/useTaskStore";
 import { Button } from "@/components/ui/button";
-import { YOUTUBE_URL_REGEX } from "@/lib/constants";
+
+function isValidUrl(s: string): boolean {
+  try { new URL(s); return true; } catch { return false; }
+}
 
 export function DropZone() {
   const { isDragging, handleDragOver, handleDragLeave, extractPaths } = useDropZone();
@@ -17,7 +20,7 @@ export function DropZone() {
 
     const lines = trimmed.split("\n").map((l) => l.trim()).filter(Boolean);
     for (const line of lines) {
-      if (YOUTUBE_URL_REGEX.test(line)) {
+      if (isValidUrl(line)) {
         await addTask(line);
       }
     }
@@ -71,7 +74,7 @@ export function DropZone() {
           }
           // Check for text (URL)
           const text = e.dataTransfer?.getData("text/plain");
-          if (text && YOUTUBE_URL_REGEX.test(text)) {
+          if (text && isValidUrl(text)) {
             addTask(text);
           }
         }}

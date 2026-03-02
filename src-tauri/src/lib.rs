@@ -2,7 +2,9 @@ mod binary_manager;
 mod commands;
 mod config;
 mod error;
+mod model_manager;
 mod queue;
+mod source;
 mod subtitle;
 mod translate;
 mod tts;
@@ -48,6 +50,8 @@ pub fn run() {
             settings_cmd::open_folder,
             settings_cmd::setup_binaries,
             settings_cmd::get_binary_status,
+            settings_cmd::download_nllb_model,
+            settings_cmd::delete_nllb_model,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

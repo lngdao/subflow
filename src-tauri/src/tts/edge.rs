@@ -5,12 +5,105 @@ use crate::error::{Result, SubflowError};
 use crate::tts::provider::TtsProvider;
 use crate::tts::types::VoiceInfo;
 
-pub struct EdgeTtsProvider;
+const DEFAULT_CHUNK_SIZE: usize = 500;
+
+pub struct EdgeTtsProvider {
+    chunk_size: usize,
+}
 
 impl EdgeTtsProvider {
     pub fn new() -> Self {
-        Self
+        Self {
+            chunk_size: DEFAULT_CHUNK_SIZE,
+        }
     }
+
+    pub fn with_chunk_size(chunk_size: usize) -> Self {
+        Self {
+            chunk_size: chunk_size.max(100),
+        }
+    }
+}
+
+/// Split text into chunks of approximately `max_chars` characters,
+/// breaking at sentence boundaries (". ", "! ", "? ", "\n") to avoid
+/// cutting mid-sentence.
+fn chunk_text(text: &str, max_chars: usize) -> Vec<String> {
+    if text.len() <= max_chars {
+        return vec![text.to_string()];
+    }
+
+    let mut chunks = Vec::new();
+    let mut remaining = text;
+
+    while !remaining.is_empty() {
+        if remaining.len() <= max_chars {
+            chunks.push(remaining.to_string());
+            break;
+        }
+
+        // Find the best split point near max_chars
+        let search_region = &remaining[..max_chars];
+        let split_at = search_region
+            .rfind(". ")
+            .map(|i| i + 2)
+            .or_else(|| search_region.rfind("! ").map(|i| i + 2))
+            .or_else(|| search_region.rfind("? ").map(|i| i + 2))
+            .or_else(|| search_region.rfind('\n').map(|i| i + 1))
+            .or_else(|| search_region.rfind(", ").map(|i| i + 2))
+            .or_else(|| search_region.rfind(' ').map(|i| i + 1))
+            .unwrap_or(max_chars);
+
+        let (chunk, rest) = remaining.split_at(split_at);
+        let trimmed = chunk.trim();
+        if !trimmed.is_empty() {
+            chunks.push(trimmed.to_string());
+        }
+        remaining = rest.trim_start();
+    }
+
+    chunks
+}
+
+/// Synthesize a single chunk of text with retries.
+fn synthesize_single(text: &str, voice: &str) -> std::result::Result<Vec<u8>, String> {
+    use msedge_tts::tts::client::connect as tts_connect;
+    use msedge_tts::tts::SpeechConfig;
+
+    let max_retries = 3;
+    let mut last_err = None;
+
+    for attempt in 0..max_retries {
+        if attempt > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(1000 * attempt as u64));
+        }
+
+        let mut tts = match tts_connect() {
+            Ok(t) => t,
+            Err(e) => {
+                last_err = Some(format!("Edge TTS connection failed: {}", e));
+                continue;
+            }
+        };
+
+        let config = SpeechConfig {
+            voice_name: voice.to_string(),
+            audio_format: "audio-24khz-48kbitrate-mono-mp3".to_string(),
+            pitch: 0,
+            rate: 0,
+            volume: 0,
+        };
+
+        match tts.synthesize(text, &config) {
+            Ok(audio) => return Ok(audio.audio_bytes),
+            Err(e) => {
+                last_err = Some(format!("Edge TTS synthesis failed: {}", e));
+                continue;
+            }
+        }
+    }
+
+    Err(last_err.unwrap_or_else(|| "Edge TTS failed after retries".to_string()))
 }
 
 #[async_trait]
@@ -22,55 +115,24 @@ impl TtsProvider for EdgeTtsProvider {
         _speed: f32,
         output_path: &Path,
     ) -> Result<()> {
-        let text = text.to_string();
+        let chunks = chunk_text(text, self.chunk_size);
         let voice = voice.to_string();
         let output_path = output_path.to_path_buf();
 
         tokio::task::spawn_blocking(move || {
-            use msedge_tts::tts::client::connect as tts_connect;
-            use msedge_tts::tts::SpeechConfig;
-
-            let max_retries = 3;
-            let mut last_err = None;
-
-            for attempt in 0..max_retries {
-                if attempt > 0 {
-                    std::thread::sleep(std::time::Duration::from_millis(1000 * attempt as u64));
-                }
-
-                let connect_result = tts_connect();
-                let mut tts = match connect_result {
-                    Ok(t) => t,
-                    Err(e) => {
-                        last_err = Some(format!("Edge TTS connection failed: {}", e));
-                        continue;
-                    }
-                };
-
-                let config = SpeechConfig {
-                    voice_name: voice.clone(),
-                    audio_format: "audio-24khz-48kbitrate-mono-mp3".to_string(),
-                    pitch: 0,
-                    rate: 0,
-                    volume: 0,
-                };
-
-                match tts.synthesize(&text, &config) {
-                    Ok(audio) => {
-                        if let Some(parent) = output_path.parent() {
-                            std::fs::create_dir_all(parent)?;
-                        }
-                        std::fs::write(&output_path, &audio.audio_bytes)?;
-                        return Ok(());
-                    }
-                    Err(e) => {
-                        last_err = Some(format!("Edge TTS synthesis failed: {}", e));
-                        continue;
-                    }
-                }
+            if let Some(parent) = output_path.parent() {
+                std::fs::create_dir_all(parent)?;
             }
 
-            Err(SubflowError::Tts(last_err.unwrap_or_else(|| "Edge TTS failed after retries".to_string())))
+            let mut all_audio = Vec::new();
+            for chunk in &chunks {
+                let audio_bytes = synthesize_single(chunk, &voice)
+                    .map_err(SubflowError::Tts)?;
+                all_audio.extend(audio_bytes);
+            }
+
+            std::fs::write(&output_path, &all_audio)?;
+            Ok(())
         })
         .await
         .map_err(|e| SubflowError::Tts(format!("TTS task join error: {}", e)))?

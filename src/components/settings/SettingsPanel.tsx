@@ -47,6 +47,10 @@ export function SettingsPanel() {
   const [editingApiKey, setEditingApiKey] = useState(false);
   const [editingTtsKey, setEditingTtsKey] = useState(false);
 
+  const selectedProvider = TRANSLATION_PROVIDERS.find(
+    (p) => p.id === local?.translation.provider,
+  );
+
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
@@ -86,13 +90,16 @@ export function SettingsPanel() {
   }, [local, apiKey, ttsApiKey, saveSettings, saveApiKey, closeSettings]);
 
   const handleTest = useCallback(async () => {
-    if (!local || !apiKey) return;
+    if (!local) return;
+    // For providers without API key requirement, test with empty key
+    const testKey = selectedProvider?.hasApiKey === false ? "" : apiKey;
+    if (selectedProvider?.hasApiKey !== false && !testKey) return;
     setTesting(true);
     setTestResult(null);
     try {
       const ok = await testConnection(
         local.translation.provider,
-        apiKey,
+        testKey,
         local.translation.base_url || undefined,
         local.translation.model || undefined,
       );
@@ -102,7 +109,7 @@ export function SettingsPanel() {
     } finally {
       setTesting(false);
     }
-  }, [local, apiKey, testConnection]);
+  }, [local, apiKey, testConnection, selectedProvider]);
 
   const handleLanguageChange = useCallback(
     (lang: string) => {
@@ -113,10 +120,6 @@ export function SettingsPanel() {
   );
 
   if (!local) return null;
-
-  const selectedProvider = TRANSLATION_PROVIDERS.find(
-    (p) => p.id === local.translation.provider,
-  );
 
   return (
     <Sheet open={isSettingsOpen} onOpenChange={(open) => !open && closeSettings()}>
@@ -254,14 +257,17 @@ export function SettingsPanel() {
                 <Label className="text-sm text-secondary-foreground mb-1.5">
                   {t("settings.apiKey")}
                 </Label>
-                {apiKeyPreview && !editingApiKey ? (
+                {selectedProvider?.hasApiKey === false ? (
+                  <p className="text-xs text-muted-foreground italic">
+                    No API key required
+                  </p>
+                ) : apiKeyPreview && !editingApiKey ? (
                   <div className="flex items-center gap-2">
                     <div className="flex-1 rounded-md bg-secondary border border-border px-3 py-2 text-sm text-muted-foreground font-mono">
                       {apiKeyPreview}
                     </div>
                     <Button
                       variant="outline"
-                      size="sm"
                       onClick={() => setEditingApiKey(true)}
                     >
                       {t("settings.change")}
@@ -277,7 +283,6 @@ export function SettingsPanel() {
                     />
                     <Button
                       variant="outline"
-                      size="sm"
                       onClick={handleTest}
                       disabled={testing || !apiKey}
                     >
@@ -302,21 +307,45 @@ export function SettingsPanel() {
                 <div>
                   <Label className="text-sm text-secondary-foreground mb-1.5">
                     {t("settings.baseUrl")}{" "}
-                    <span className="text-muted-foreground">(optional)</span>
+                    {selectedProvider?.hasApiKey !== false && (
+                      <span className="text-muted-foreground">(optional)</span>
+                    )}
                   </Label>
-                  <Input
-                    value={local.translation.base_url || ""}
-                    onChange={(e) =>
-                      setLocal({
-                        ...local,
-                        translation: {
-                          ...local.translation,
-                          base_url: e.target.value || null,
-                        },
-                      })
-                    }
-                    placeholder="https://api.example.com"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={local.translation.base_url || ""}
+                      onChange={(e) =>
+                        setLocal({
+                          ...local,
+                          translation: {
+                            ...local.translation,
+                            base_url: e.target.value || null,
+                          },
+                        })
+                      }
+                      placeholder="https://api.example.com"
+                    />
+                    {selectedProvider?.hasApiKey === false && (
+                      <Button
+                        variant="outline"
+                        onClick={handleTest}
+                        disabled={testing}
+                      >
+                        {testing ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : testResult === true ? (
+                          <Check className="w-4 h-4 text-accent-success" />
+                        ) : (
+                          t("settings.test")
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                  {selectedProvider?.hasApiKey === false && testResult === false && (
+                    <p className="text-xs text-destructive mt-1">
+                      Connection failed
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -340,6 +369,33 @@ export function SettingsPanel() {
                   />
                 </div>
               )}
+
+              {/* Standalone Test button for providers with no API key and no base URL (e.g., NLLB local) */}
+              {selectedProvider?.hasApiKey === false &&
+                !selectedProvider?.hasBaseUrl && (
+                  <div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTest}
+                      disabled={testing}
+                      className="w-full"
+                    >
+                      {testing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : testResult === true ? (
+                        <Check className="w-4 h-4 text-accent-success" />
+                      ) : (
+                        t("settings.test")
+                      )}
+                    </Button>
+                    {testResult === false && (
+                      <p className="text-xs text-destructive mt-1">
+                        Connection failed
+                      </p>
+                    )}
+                  </div>
+                )}
             </div>
           </section>
 
@@ -406,6 +462,107 @@ export function SettingsPanel() {
                   )}
                 </div>
               )}
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Performance Section */}
+          <section>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+              {t("settings.performance")}
+            </Label>
+
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm text-secondary-foreground mb-1.5">
+                  {t("settings.parallelLangs")}
+                </Label>
+                <Select
+                  value={String(local.queue.parallel_langs ?? 2)}
+                  onValueChange={(v) =>
+                    setLocal({
+                      ...local,
+                      queue: {
+                        ...local.queue,
+                        parallel_langs: parseInt(v),
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div
+                className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2.5 cursor-pointer"
+                onClick={() =>
+                  setLocal({
+                    ...local,
+                    queue: {
+                      ...local.queue,
+                      pipeline_tts: !(local.queue.pipeline_tts ?? true),
+                    },
+                  })
+                }
+              >
+                <span className="text-sm text-foreground">
+                  {t("settings.pipelineTts")}
+                </span>
+                <div
+                  className={`w-8 h-5 rounded-full transition-colors relative ${
+                    (local.queue.pipeline_tts ?? true)
+                      ? "bg-primary"
+                      : "bg-muted-foreground/30"
+                  }`}
+                >
+                  <div
+                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                      (local.queue.pipeline_tts ?? true)
+                        ? "translate-x-3.5"
+                        : "translate-x-0.5"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm text-secondary-foreground mb-1.5">
+                  {t("settings.ttsChunkSize")}
+                </Label>
+                <Select
+                  value={String(local.queue.tts_chunk_size ?? 500)}
+                  onValueChange={(v) =>
+                    setLocal({
+                      ...local,
+                      queue: {
+                        ...local.queue,
+                        tts_chunk_size: parseInt(v),
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[200, 300, 500, 750, 1000].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n} chars
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </section>
 

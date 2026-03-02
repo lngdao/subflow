@@ -9,7 +9,7 @@
     "queue": "Queue"
   },
   "source": {
-    "placeholder": "Paste YouTube URL here...",
+    "placeholder": "Paste video URL here (YouTube, Vimeo, etc.)...",
     "add": "Add",
     "browse": "Browse Files"
   },
@@ -48,7 +48,11 @@
     "notifications": "Notifications",
     "notifyOnComplete": "Notify when task completes or fails",
     "keySet": "Saved",
-    "keyNotSet": "Not set"
+    "keyNotSet": "Not set",
+    "performance": "Performance",
+    "parallelLangs": "Parallel Languages",
+    "pipelineTts": "Pipeline TTS (translate → TTS per chunk)",
+    "ttsChunkSize": "TTS Chunk Size"
   },
   "task": {
     "queued": "Queued",
@@ -64,7 +68,10 @@
     "resume": "Resume",
     "retry": "Retry",
     "openFolder": "Reveal in Folder",
-    "remove": "Remove from Queue"
+    "remove": "Remove from Queue",
+    "modeSubOnly": "Sub",
+    "modeSubTranslate": "Sub+Translate",
+    "modeSubTranslateTts": "Sub+Translate+TTS"
   },
   "toolbar": {
     "settings": "Settings",
@@ -80,7 +87,14 @@
     "installing": "Installing...",
     "retry": "Retry",
     "allGood": "All dependencies are installed.",
-    "missingDeps": "Missing dependencies"
+    "missingDeps": "Missing dependencies",
+    "nllbModel": "NLLB Translation Model",
+    "nllbModelDesc": "Local model (~2.5 GB)",
+    "nllbDownload": "Download",
+    "nllbDownloading": "Downloading...",
+    "nllbDelete": "Delete",
+    "nllbReady": "Ready",
+    "nllbNotDownloaded": "Not downloaded"
   },
   "log": {
     "title": "Log",
@@ -90,7 +104,8 @@
   "dropzone": {
     "dropFiles": "Drop files here",
     "orPaste": "or paste YouTube URLs",
-    "supported": "supported: .srt .vtt .txt"
+    "supported": "supported: .srt .vtt .txt",
+    "browse": "Browse Files"
   },
   "queue": {
     "title": "Queue",

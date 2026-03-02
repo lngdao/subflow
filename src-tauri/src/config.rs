@@ -42,7 +42,17 @@ pub struct OutputConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueueConfig {
     pub parallel_jobs: u32,
+    #[serde(default = "default_parallel_langs")]
+    pub parallel_langs: u32,
+    #[serde(default = "default_pipeline_tts")]
+    pub pipeline_tts: bool,
+    #[serde(default = "default_tts_chunk_size")]
+    pub tts_chunk_size: u32,
 }
+
+fn default_parallel_langs() -> u32 { 2 }
+fn default_pipeline_tts() -> bool { true }
+fn default_tts_chunk_size() -> u32 { 500 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NotificationConfig {
@@ -75,7 +85,12 @@ impl Default for AppConfig {
                 format: "srt".to_string(),
                 folder: default_output_folder(),
             },
-            queue: QueueConfig { parallel_jobs: 2 },
+            queue: QueueConfig {
+                parallel_jobs: 2,
+                parallel_langs: 2,
+                pipeline_tts: true,
+                tts_chunk_size: 500,
+            },
             notifications: NotificationConfig::default(),
         }
     }

@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.3.0 - Native NLLB Translation + UX Improvements (2026-03-03)
+
+### Added
+
+**Backend**
+- Native NLLB-200 translation via CTranslate2 FFI (`ct2rs` crate) — local translation without Docker/server
+- Model manager: streaming download of NLLB-600M model (~1.2GB) from HuggingFace with progress events
+- Actor-pattern NLLB provider: dedicated OS thread for CTranslate2 (not Send/Sync), mpsc channel communication
+- Lazy singleton initialization for NLLB translator (loads once, stays warm across tasks)
+- `download_nllb_model` / `delete_nllb_model` Tauri commands
+- NLLB model status in `BinaryStatus` (available flag + path)
+- `nllb_api` provider ID for existing HTTP-based NLLB server (renamed from `nllb`)
+- LibreTranslate provider support
+
+**Frontend**
+- NLLB model download/delete UI in Dependencies modal with progress bar
+- Processing mode badge on TaskCard (Sub, Sub+Translate, Sub+Translate+TTS)
+- Standalone Test button for providers without API key or base URL (NLLB local)
+- `NLLB-200 (Local)` and `NLLB-200 (Server)` as separate provider options
+
+### Fixed
+- Orphaned `.tts_chunks_*` directories now cleaned up at start of each language processing
+- Previously, failed/cancelled SubTranslateTts tasks left TTS chunk dirs behind
+
+### Changed
+- `nllb` provider ID now routes to native CTranslate2 (was HTTP)
+- Old HTTP NLLB provider available as `nllb_api`
+- Added `ct2rs` (with sentencepiece feature) and `futures-util` dependencies
+
+---
+
 ## v0.2.1 - UX Polish + Notifications (2026-03-02)
 
 ### Added

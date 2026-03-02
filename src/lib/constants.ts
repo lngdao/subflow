@@ -18,6 +18,9 @@ export const TRANSLATION_PROVIDERS = [
   { id: "openai", name: "OpenAI GPT-4o", hasApiKey: true, hasBaseUrl: true, hasModel: true },
   { id: "gemini", name: "Gemini Flash", hasApiKey: true, hasBaseUrl: false, hasModel: true },
   { id: "deepl", name: "DeepL", hasApiKey: true, hasBaseUrl: false, hasModel: false },
+  { id: "libretranslate", name: "LibreTranslate", hasApiKey: false, hasBaseUrl: true, hasModel: false },
+  { id: "nllb", name: "NLLB-200 (Local)", hasApiKey: false, hasBaseUrl: false, hasModel: false },
+  { id: "nllb_api", name: "NLLB-200 (Server)", hasApiKey: false, hasBaseUrl: true, hasModel: false },
   { id: "openai_compatible", name: "OpenAI Compatible", hasApiKey: true, hasBaseUrl: true, hasModel: true },
   { id: "anthropic", name: "Anthropic Messages", hasApiKey: true, hasBaseUrl: true, hasModel: true },
 ] as const;
@@ -32,6 +35,3 @@ export const OUTPUT_FORMATS = [
   { id: "vtt", name: "VTT" },
   { id: "txt", name: "TXT" },
 ] as const;
-
-export const YOUTUBE_URL_REGEX =
-  /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[&?].*)?/;

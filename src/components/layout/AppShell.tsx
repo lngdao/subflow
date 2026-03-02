@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { useSettingsStore } from "@/stores/useSettingsStore";
@@ -18,6 +19,7 @@ import {
   TabsContent,
 } from "@/components/animate-ui/components/radix/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const ACTIVE_STATUSES = new Set([
   "Queued",
@@ -38,6 +40,9 @@ export function AppShell() {
   const activeCount = tasks.filter((t) =>
     ACTIVE_STATUSES.has(t.status),
   ).length;
+
+  const triggerTabAction = useUiStore((s) => s.triggerTabAction);
+  const addActionEnabled = useUiStore((s) => s.addActionEnabled);
 
   useTaskEvents();
 
@@ -76,11 +81,16 @@ export function AppShell() {
               )}
             </TabsTrigger>
           </TabsList>
-          {/* <div className="ml-auto">
-            <h1 className="text-xs font-semibold text-muted-foreground tracking-wider">
-              {t("app.name")}
-            </h1>
-          </div> */}
+          {activeTab !== "queue" && (
+            <Button
+              className="ml-auto text-xs gap-1"
+              onClick={triggerTabAction}
+              disabled={!addActionEnabled}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {t("source.add")}
+            </Button>
+          )}
         </div>
 
         {/* Main Content */}

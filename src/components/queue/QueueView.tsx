@@ -5,7 +5,6 @@ import { useTaskStore } from "@/stores/useTaskStore";
 import { TaskCard } from "./TaskCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { YOUTUBE_URL_REGEX } from "@/lib/constants";
 
 export function QueueView() {
   const { t } = useTranslation();
@@ -19,8 +18,11 @@ export function QueueView() {
     if (!trimmed) return;
     const lines = trimmed.split("\n").map((l) => l.trim()).filter(Boolean);
     for (const line of lines) {
-      if (YOUTUBE_URL_REGEX.test(line)) {
+      try {
+        new URL(line);
         await addTask(line);
+      } catch {
+        // skip invalid URLs
       }
     }
     setUrlInput("");

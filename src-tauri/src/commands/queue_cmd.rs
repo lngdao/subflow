@@ -13,7 +13,7 @@ fn spawn_task(orch: Orchestrator, task_id: String, app_handle: tauri::AppHandle,
     let handle = tokio::spawn(async move {
         // Fetch metadata in background (don't block the command response)
         if let Some(url) = fetch_meta_url {
-            if let Ok(meta) = crate::youtube::metadata::get_metadata(&url).await {
+            if let Ok(Some(meta)) = crate::source::provider::get_metadata(&url).await {
                 let title = meta.title.clone();
                 let mut tasks = orch.tasks_lock().await;
                 if let Some(t) = tasks.get_mut(&tid) {
