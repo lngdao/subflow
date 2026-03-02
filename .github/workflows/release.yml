@@ -18,23 +18,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate changelog
+      - name: Extract changelog
         id: changelog
         run: |
-          # Get previous tag
-          PREV_TAG=$(git tag --sort=-v:refname | head -2 | tail -1)
           CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${CURRENT_TAG#v}
 
-          if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
-            # First release - get all commits
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" HEAD)
-          else
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREV_TAG}..${CURRENT_TAG})
+          # Extract the section for this version from CHANGELOG.md
+          # Matches from "## vX.Y.Z" until the next "## " or end of file
+          CHANGELOG=$(awk "/^## ${CURRENT_TAG}/,/^## v[0-9]/" CHANGELOG.md | sed '1d;$d' | sed '/^$/N;/^\n$/d')
+
+          if [ -z "$CHANGELOG" ]; then
+            # Fallback to git log if version not found in CHANGELOG.md
+            PREV_TAG=$(git tag --sort=-v:refname | head -2 | tail -1)
+            if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
+              CHANGELOG=$(git log --pretty=format:"- %s (%h)" HEAD)
+            else
+              CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREV_TAG}..${CURRENT_TAG})
+            fi
           fi
 
-          # Write to file for multiline output
           echo "$CHANGELOG" > changelog.txt
-          echo "version=${CURRENT_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         id: create_release
