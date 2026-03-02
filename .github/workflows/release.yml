@@ -12,7 +12,6 @@ jobs:
       contents: write
     outputs:
       release_id: ${{ steps.create_release.outputs.id }}
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,14 +21,11 @@ jobs:
         id: changelog
         run: |
           CURRENT_TAG=${GITHUB_REF#refs/tags/}
-          VERSION=${CURRENT_TAG#v}
 
           # Extract the section for this version from CHANGELOG.md
-          # Matches from "## vX.Y.Z" until the next "## " or end of file
           CHANGELOG=$(awk "/^## ${CURRENT_TAG}/,/^## v[0-9]/" CHANGELOG.md | sed '1d;$d' | sed '/^$/N;/^\n$/d')
 
           if [ -z "$CHANGELOG" ]; then
-            # Fallback to git log if version not found in CHANGELOG.md
             PREV_TAG=$(git tag --sort=-v:refname | head -2 | tail -1)
             if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
               CHANGELOG=$(git log --pretty=format:"- %s (%h)" HEAD)
@@ -129,21 +125,23 @@ jobs:
           echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
-      - name: Install macOS OpenSSL (x86_64 cross-compile)
-        if: matrix.target == 'x86_64-apple-darwin'
-        run: |
-          brew install openssl@3
-          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
-
       - name: Sync version from tag
+        shell: node {0}
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          # Update tauri.conf.json version
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" src-tauri/tauri.conf.json
-          rm -f src-tauri/tauri.conf.json.bak
-          # Update Cargo.toml version
-          sed -i.bak "s/^version = \".*\"/version = \"${VERSION}\"/" src-tauri/Cargo.toml
-          rm -f src-tauri/Cargo.toml.bak
+          const fs = require('fs');
+          const version = process.env.GITHUB_REF_NAME.replace(/^v/, '');
+
+          // Update tauri.conf.json
+          const tauriConf = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+          tauriConf.version = version;
+          fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tauriConf, null, 2) + '\n');
+
+          // Update Cargo.toml
+          let cargo = fs.readFileSync('src-tauri/Cargo.toml', 'utf8');
+          cargo = cargo.replace(/^version = ".*"/m, `version = "${version}"`);
+          fs.writeFileSync('src-tauri/Cargo.toml', cargo);
+
+          console.log(`Updated version to ${version}`);
 
       - name: Install frontend dependencies
         run: pnpm install
@@ -156,4 +154,4 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: SubFlow ${{ github.ref_name }}
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} --features vendored-openssl
