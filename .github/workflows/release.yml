@@ -21,16 +21,18 @@ jobs:
         id: changelog
         run: |
           CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          REPO_URL="https://github.com/${{ github.repository }}"
 
-          # Extract the section for this version from CHANGELOG.md
-          CHANGELOG=$(awk "/^## ${CURRENT_TAG}/,/^## v[0-9]/" CHANGELOG.md | sed '1d;$d' | sed '/^$/N;/^\n$/d')
+          # Extract section: match "## vX.Y.Z" (with any trailing text) until next "## v" or "---"
+          CHANGELOG=$(awk "/^## ${CURRENT_TAG}[[:space:]]/,/^(## v[0-9]|---)/" CHANGELOG.md | sed '1d;$d')
 
           if [ -z "$CHANGELOG" ]; then
+            # Fallback to git log with linked commit hashes
             PREV_TAG=$(git tag --sort=-v:refname | head -2 | tail -1)
             if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
-              CHANGELOG=$(git log --pretty=format:"- %s (%h)" HEAD)
+              CHANGELOG=$(git log --pretty=format:"- %s ([%h](${REPO_URL}/commit/%H))" HEAD)
             else
-              CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREV_TAG}..${CURRENT_TAG})
+              CHANGELOG=$(git log --pretty=format:"- %s ([%h](${REPO_URL}/commit/%H))" ${PREV_TAG}..${CURRENT_TAG})
             fi
           fi
 
