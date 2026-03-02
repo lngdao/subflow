@@ -32,6 +32,7 @@ export function AppShell() {
   const activeTab = useUiStore((s) => s.activeTab);
   const setActiveTab = useUiStore((s) => s.setActiveTab);
   const loadSettings = useSettingsStore((s) => s.loadSettings);
+  const setAppReady = useUiStore((s) => s.setAppReady);
   const tasks = useTaskStore((s) => s.tasks);
 
   const activeCount = tasks.filter((t) =>
@@ -41,10 +42,11 @@ export function AppShell() {
   useTaskEvents();
 
   useEffect(() => {
-    loadSettings();
-    // Auto-download yt-dlp and ffmpeg in background on first launch
-    invoke("setup_binaries").catch(console.error);
-  }, [loadSettings]);
+    Promise.all([
+      loadSettings(),
+      invoke("setup_binaries").catch(console.error),
+    ]).finally(() => setAppReady());
+  }, [loadSettings, setAppReady]);
 
   return (
     <div className="flex flex-col h-screen bg-background">

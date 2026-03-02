@@ -62,6 +62,7 @@ export interface Task {
   current_lang: string | null;
   output_dir: string | null;
   created_at: string;
+  started_at: string | null;
   completed_at: string | null;
   error: string | null;
 }
@@ -90,11 +91,16 @@ export interface QueueConfig {
   parallel_jobs: number;
 }
 
+export interface NotificationConfig {
+  enabled: boolean;
+}
+
 export interface AppConfig {
   translation: TranslationConfig;
   tts: TtsConfig;
   output: OutputConfig;
   queue: QueueConfig;
+  notifications: NotificationConfig;
 }
 
 export interface VoiceInfo {

@@ -19,6 +19,7 @@ pub struct Task {
     pub current_lang: Option<String>,
     pub output_dir: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub started_at: Option<DateTime<Utc>>,
     pub completed_at: Option<DateTime<Utc>>,
     pub error: Option<String>,
 }
@@ -40,6 +41,7 @@ impl Task {
             current_lang: None,
             output_dir: None,
             created_at: Utc::now(),
+            started_at: None,
             completed_at: None,
             error: None,
         }
@@ -66,6 +68,7 @@ impl Task {
             current_lang: None,
             output_dir: None,
             created_at: Utc::now(),
+            started_at: None,
             completed_at: None,
             error: None,
         }

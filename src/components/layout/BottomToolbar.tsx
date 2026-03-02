@@ -8,12 +8,15 @@ import {
   Download,
   Loader2,
   X,
+  ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 import { useUiStore } from "@/stores/useUiStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { BinaryStatus } from "@/lib/types";
@@ -28,6 +31,7 @@ export function BottomToolbar() {
   const [binStatus, setBinStatus] = useState<BinaryStatus | null>(null);
   const [showDepsModal, setShowDepsModal] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const { update, checking, checkNow } = useUpdateChecker();
 
   const allOk =
     binStatus !== null &&
@@ -72,6 +76,17 @@ export function BottomToolbar() {
     }
   };
 
+  const handleDownloadUpdate = async () => {
+    if (!update?.url) return;
+    try {
+      const { open } = await import("@tauri-apps/plugin-shell");
+      await open(update.url);
+    } catch {
+      // Fallback
+      window.open(update.url, "_blank");
+    }
+  };
+
   return (
     <>
       <div className="flex items-center justify-between px-6 py-2 border-t border-border bg-card/50">
@@ -107,6 +122,15 @@ export function BottomToolbar() {
 
         {/* Version + Status */}
         <div className="flex items-center gap-2">
+          {update?.available && (
+            <Badge
+              variant="outline"
+              className="cursor-pointer text-[10px] h-5 px-1.5 gap-1 border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
+              onClick={() => setShowDepsModal(true)}
+            >
+              {t("update.available", { version: update.version })}
+            </Badge>
+          )}
           {hasMissing && (
             <Badge
               variant="outline"
@@ -118,13 +142,14 @@ export function BottomToolbar() {
             </Badge>
           )}
           <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-            <span>SubFlow v0.2.0</span>
+            <span>SubFlow v{__APP_VERSION__}</span>
             <span
               onClick={() => setShowDepsModal(true)}
               className={cn(
-                "inline-block w-2 h-2 rounded-full",
+                "inline-block w-2 h-2 rounded-full cursor-pointer",
                 binStatus === null && "bg-muted-foreground/50",
-                allOk && "bg-emerald-500 animate-pulse",
+                allOk && !update?.available && "bg-emerald-500 animate-pulse",
+                allOk && update?.available && "bg-orange-500 animate-pulse",
                 hasMissing && "bg-red-500 animate-pulse",
               )}
             />
@@ -152,6 +177,33 @@ export function BottomToolbar() {
                 <X className="w-3.5 h-3.5" />
               </Button>
             </div>
+
+            {/* Update Section */}
+            {update?.available && (
+              <div className="mb-4 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {t("update.available", { version: update.version })}
+                    </p>
+                    {update.changelog && (
+                      <p className="text-[11px] text-muted-foreground mt-1 line-clamp-3">
+                        {update.changelog.slice(0, 200)}
+                        {update.changelog.length > 200 ? "..." : ""}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    className="ml-3 shrink-0"
+                    onClick={handleDownloadUpdate}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    {t("update.download")}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               {/* yt-dlp */}
@@ -193,11 +245,32 @@ export function BottomToolbar() {
               </Button>
             )}
 
-            {allOk && (
+            {allOk && !update?.available && (
               <p className="text-xs text-muted-foreground text-center mt-4">
                 {t("deps.allGood")}
               </p>
             )}
+
+            {/* Check for updates button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-3 text-xs text-muted-foreground"
+              onClick={checkNow}
+              disabled={checking}
+            >
+              {checking ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  {t("update.checking")}
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  {t("update.checkForUpdates")}
+                </>
+              )}
+            </Button>
           </div>
         </div>
       )}

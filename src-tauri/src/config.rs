@@ -10,6 +10,8 @@ pub struct AppConfig {
     pub tts: TtsConfig,
     pub output: OutputConfig,
     pub queue: QueueConfig,
+    #[serde(default)]
+    pub notifications: NotificationConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,6 +44,17 @@ pub struct QueueConfig {
     pub parallel_jobs: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NotificationConfig {
+    pub enabled: bool,
+}
+
+impl Default for NotificationConfig {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
@@ -63,6 +76,7 @@ impl Default for AppConfig {
                 folder: default_output_folder(),
             },
             queue: QueueConfig { parallel_jobs: 2 },
+            notifications: NotificationConfig::default(),
         }
     }
 }

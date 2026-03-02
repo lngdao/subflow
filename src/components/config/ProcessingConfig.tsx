@@ -99,7 +99,7 @@ export function ProcessingConfig() {
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent searchable>
             {SOURCE_LANGUAGES.map((l) => (
               <SelectItem key={l.code} value={l.code}>
                 {l.name}
@@ -164,7 +164,7 @@ export function ProcessingConfig() {
                     <SelectTrigger className="flex-1 h-8 text-xs">
                       <SelectValue placeholder={t("config.selectVoice")} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent searchable>
                       {langVoices.length > 0 ? (
                         langVoices.map((voice) => (
                           <SelectItem

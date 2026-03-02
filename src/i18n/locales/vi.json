@@ -45,6 +45,8 @@
     "done": "Xong",
     "change": "Đổi",
     "language": "Ngôn ngữ ứng dụng",
+    "notifications": "Thông báo",
+    "notifyOnComplete": "Thông báo khi tác vụ hoàn thành hoặc lỗi",
     "keySet": "Đã lưu",
     "keyNotSet": "Chưa có"
   },
@@ -61,7 +63,7 @@
     "pause": "Tạm dừng",
     "resume": "Tiếp tục",
     "retry": "Thử lại",
-    "openFolder": "Mở thư mục",
+    "openFolder": "Hiển thị trong thư mục",
     "remove": "Xóa khỏi hàng đợi"
   },
   "toolbar": {
@@ -93,5 +95,12 @@
   "queue": {
     "title": "Hàng đợi",
     "empty": "Chưa có tác vụ. Thêm URL hoặc tệp để bắt đầu."
+  },
+  "update": {
+    "available": "v{{version}} khả dụng",
+    "download": "Tải xuống",
+    "checkForUpdates": "Kiểm tra cập nhật",
+    "checking": "Đang kiểm tra...",
+    "upToDate": "Bạn đang dùng phiên bản mới nhất."
   }
 }

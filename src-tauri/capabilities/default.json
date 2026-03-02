@@ -13,6 +13,10 @@
     "fs:default",
     "fs:allow-mkdir",
     "fs:allow-exists",
-    "core:event:default"
+    "core:event:default",
+    "notification:default",
+    "notification:allow-notify",
+    "notification:allow-request-permission",
+    "notification:allow-is-permission-granted"
   ]
 }

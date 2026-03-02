@@ -175,6 +175,46 @@ export function SettingsPanel() {
 
           <Separator />
 
+          {/* Notifications */}
+          <section>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+              {t("settings.notifications")}
+            </Label>
+            <div
+              className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2.5 cursor-pointer"
+              onClick={() =>
+                setLocal({
+                  ...local,
+                  notifications: {
+                    ...local.notifications,
+                    enabled: !local.notifications.enabled,
+                  },
+                })
+              }
+            >
+              <span className="text-sm text-foreground">
+                {t("settings.notifyOnComplete")}
+              </span>
+              <div
+                className={`w-8 h-5 rounded-full transition-colors relative ${
+                  local.notifications.enabled
+                    ? "bg-primary"
+                    : "bg-muted-foreground/30"
+                }`}
+              >
+                <div
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                    local.notifications.enabled
+                      ? "translate-x-3.5"
+                      : "translate-x-0.5"
+                  }`}
+                />
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
           {/* Translation Section */}
           <section>
             <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
@@ -200,7 +240,7 @@ export function SettingsPanel() {
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent searchable>
                     {TRANSLATION_PROVIDERS.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}

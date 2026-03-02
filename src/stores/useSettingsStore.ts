@@ -39,6 +39,9 @@ const DEFAULT_SETTINGS: AppConfig = {
   queue: {
     parallel_jobs: 2,
   },
+  notifications: {
+    enabled: true,
+  },
 };
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
@@ -54,6 +57,10 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       // Ensure voices field exists (migration from old config)
       if (!settings.tts.voices) {
         settings.tts.voices = {};
+      }
+      // Ensure notifications field exists (migration from old config)
+      if (!settings.notifications) {
+        settings.notifications = { enabled: true };
       }
       set({ settings, loading: false });
     } catch {

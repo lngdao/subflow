@@ -172,7 +172,10 @@ impl Orchestrator {
             .map_err(|_| SubflowError::Queue("Failed to acquire semaphore".to_string()))?;
 
         let task = {
-            let tasks = self.tasks.lock().await;
+            let mut tasks = self.tasks.lock().await;
+            if let Some(t) = tasks.get_mut(task_id) {
+                t.started_at = Some(chrono::Utc::now());
+            }
             tasks
                 .get(task_id)
                 .cloned()

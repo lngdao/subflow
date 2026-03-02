@@ -11,6 +11,8 @@ interface UiStore {
   isLogOpen: boolean;
   activeTab: "source" | "files" | "queue";
   logs: LogEntry[];
+  appReady: boolean;
+  splashVisible: boolean;
   openSettings: () => void;
   closeSettings: () => void;
   toggleSettings: () => void;
@@ -18,6 +20,7 @@ interface UiStore {
   setActiveTab: (tab: "source" | "files" | "queue") => void;
   addLog: (entry: LogEntry) => void;
   clearLogs: () => void;
+  setAppReady: () => void;
 }
 
 export const useUiStore = create<UiStore>((set) => ({
@@ -25,6 +28,8 @@ export const useUiStore = create<UiStore>((set) => ({
   isLogOpen: false,
   activeTab: "source",
   logs: [],
+  appReady: false,
+  splashVisible: true,
   openSettings: () => set({ isSettingsOpen: true }),
   closeSettings: () => set({ isSettingsOpen: false }),
   toggleSettings: () => set((s) => ({ isSettingsOpen: !s.isSettingsOpen })),
@@ -33,4 +38,8 @@ export const useUiStore = create<UiStore>((set) => ({
   addLog: (entry) =>
     set((s) => ({ logs: [...s.logs.slice(-199), entry] })),
   clearLogs: () => set({ logs: [] }),
+  setAppReady: () => {
+    set({ appReady: true });
+    setTimeout(() => set({ splashVisible: false }), 600);
+  },
 }));

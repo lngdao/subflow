@@ -42,6 +42,19 @@ function formatTimeAgo(dateStr: string): string {
   return `${diffDay}d ago`;
 }
 
+function formatDuration(startStr: string, endStr: string): string {
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  const diffSec = Math.round((end.getTime() - start.getTime()) / 1000);
+  if (diffSec < 60) return `${diffSec}s`;
+  const min = Math.floor(diffSec / 60);
+  const sec = diffSec % 60;
+  if (min < 60) return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
+  const hr = Math.floor(min / 60);
+  const remMin = min % 60;
+  return remMin > 0 ? `${hr}h ${remMin}m` : `${hr}h`;
+}
+
 function statusIcon(status: TaskStatus, isFile: boolean) {
   switch (status) {
     case "Queued":
@@ -140,7 +153,9 @@ export function TaskCard({ task }: TaskCardProps) {
                 {t(STATUS_KEY_MAP[task.status])}
               </Badge>
               <span className="text-[10px] text-muted-foreground/60 shrink-0 ml-auto">
-                {timeAgo}
+                {task.status === "Completed" && task.started_at && task.completed_at
+                  ? formatDuration(task.started_at, task.completed_at)
+                  : timeAgo}
               </span>
             </div>
 
@@ -231,12 +246,10 @@ export function TaskCard({ task }: TaskCardProps) {
       </ContextMenuTrigger>
 
       <ContextMenuContent>
-        {task.output_dir && (
-          <ContextMenuItem onClick={handleOpenFolder}>
-            <FolderOpen className="w-4 h-4" />
-            {t("task.openFolder")}
-          </ContextMenuItem>
-        )}
+        <ContextMenuItem onClick={handleOpenFolder} disabled={!task.output_dir}>
+          <FolderOpen className="w-4 h-4" />
+          {t("task.openFolder")}
+        </ContextMenuItem>
         {task.status === "Failed" && (
           <ContextMenuItem onClick={() => retryTask(task.id)}>
             <RefreshCw className="w-4 h-4" />
