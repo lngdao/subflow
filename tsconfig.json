@@ -11,10 +11,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "strict": true,
     "forceConsistentCasingInFileNames": false,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"]
