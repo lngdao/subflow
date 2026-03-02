@@ -58,16 +58,22 @@ jobs:
         include:
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
+            bundles: deb,rpm,appimage
           - platform: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
+            bundles: deb,rpm
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
+            bundles: msi,nsis
           - platform: windows-latest
             target: aarch64-pc-windows-msvc
+            bundles: msi,nsis
           - platform: macos-latest
             target: aarch64-apple-darwin
+            bundles: dmg
           - platform: macos-latest
             target: x86_64-apple-darwin
+            bundles: dmg
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -156,4 +162,4 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: SubFlow ${{ github.ref_name }}
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          args: --target ${{ matrix.target }} --features vendored-openssl
+          args: --target ${{ matrix.target }} --features vendored-openssl --bundles ${{ matrix.bundles }}
