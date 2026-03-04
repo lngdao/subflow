@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.3.1 - NLLB Multi-Model Support (2026-03-04)
+
+### Added
+
+**Backend**
+- `NllbModelVariant` enum: switch between `NLLB 600M` (~2.5 GB) and `NLLB 1.3B` (~5.5 GB) CTranslate2 models
+- Per-variant model directories: `~/.config/subflow/models/nllb-600M/` and `nllb-1.3B/`
+- Singleton re-initialization: switching model variant automatically drops old provider and loads new one
+- `download_nllb_model` / `delete_nllb_model` commands now accept `variant` parameter
+- `BinaryStatus` tracks both models independently (`nllb_600m_available`, `nllb_1_3b_available`)
+
+**Frontend**
+- Two separate NLLB model rows in Dependencies modal (600M and 1.3B) with independent download/delete/progress
+- Model dropdown in Settings when NLLB provider is selected (600M default, 1.3B for higher quality)
+- `NLLB_MODELS` constant for model selection UI
+- i18n keys for both model variants (EN + VI)
+
+### Changed
+- NLLB provider now reads `model` field from config to determine variant (defaults to 600M)
+- Progress events include variant-specific model key (`nllb_600m` / `nllb_1_3b`)
+- `ct2rs` is now optional behind `nllb-native` feature flag for cross-platform compatibility
+
+### Fixed
+- CI: Windows x86_64 build — add `RUSTFLAGS=-C target-feature=+crt-static` for ct2rs linking
+- CI: macOS x86_64 build — use `macos-13` (Intel) runner instead of cross-compiling from ARM
+- CI: Windows ARM64 — disable `nllb-native` (CTranslate2 upstream doesn't support this platform)
+
+---
+
 ## v0.3.0 - Native NLLB Translation + UX Improvements (2026-03-03)
 
 ### Added

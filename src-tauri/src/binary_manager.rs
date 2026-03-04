@@ -157,8 +157,10 @@ pub struct BinaryStatus {
     pub ffmpeg_available: bool,
     pub ytdlp_path: Option<String>,
     pub ffmpeg_path: Option<String>,
-    pub nllb_model_available: bool,
-    pub nllb_model_path: Option<String>,
+    pub nllb_600m_available: bool,
+    pub nllb_600m_path: Option<String>,
+    pub nllb_1_3b_available: bool,
+    pub nllb_1_3b_path: Option<String>,
 }
 
 /// Check current status of binaries
@@ -169,8 +171,12 @@ pub async fn check_status() -> BinaryStatus {
     let ytdlp_available = ytdlp_local.exists() || binary_in_path("yt-dlp").await;
     let ffmpeg_available = ffmpeg_local.exists() || binary_in_path("ffmpeg").await;
 
-    let nllb_model_available = crate::model_manager::is_model_ready();
-    let nllb_model_dir = crate::model_manager::nllb_model_dir();
+    use crate::model_manager::{is_model_ready, nllb_model_dir, NllbModelVariant};
+
+    let nllb_600m_available = is_model_ready(NllbModelVariant::Distilled600M);
+    let nllb_600m_dir = nllb_model_dir(NllbModelVariant::Distilled600M);
+    let nllb_1_3b_available = is_model_ready(NllbModelVariant::Distilled1_3B);
+    let nllb_1_3b_dir = nllb_model_dir(NllbModelVariant::Distilled1_3B);
 
     BinaryStatus {
         ytdlp_available,
@@ -189,9 +195,15 @@ pub async fn check_status() -> BinaryStatus {
         } else {
             None
         },
-        nllb_model_available,
-        nllb_model_path: if nllb_model_available {
-            Some(nllb_model_dir.to_string_lossy().to_string())
+        nllb_600m_available,
+        nllb_600m_path: if nllb_600m_available {
+            Some(nllb_600m_dir.to_string_lossy().to_string())
+        } else {
+            None
+        },
+        nllb_1_3b_available,
+        nllb_1_3b_path: if nllb_1_3b_available {
+            Some(nllb_1_3b_dir.to_string_lossy().to_string())
         } else {
             None
         },

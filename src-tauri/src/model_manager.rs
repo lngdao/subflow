@@ -6,16 +6,55 @@ use tauri::Emitter;
 
 use crate::error::{Result, SubflowError};
 
-const NLLB_MODEL_DIR_NAME: &str = "nllb-600M";
-const HF_BASE_URL: &str =
-    "https://huggingface.co/entai2965/nllb-200-distilled-600M-ctranslate2/resolve/main";
-
 const REQUIRED_FILES: &[&str] = &[
     "model.bin",
     "sentencepiece.bpe.model",
     "shared_vocabulary.json",
     "config.json",
 ];
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum NllbModelVariant {
+    Distilled600M,
+    Distilled1_3B,
+}
+
+impl NllbModelVariant {
+    pub fn dir_name(&self) -> &str {
+        match self {
+            Self::Distilled600M => "nllb-600M",
+            Self::Distilled1_3B => "nllb-1.3B",
+        }
+    }
+
+    pub fn hf_repo_url(&self) -> &str {
+        match self {
+            Self::Distilled600M => "https://huggingface.co/entai2965/nllb-200-distilled-600M-ctranslate2/resolve/main",
+            Self::Distilled1_3B => "https://huggingface.co/entai2965/nllb-200-distilled-1.3B-ctranslate2/resolve/main",
+        }
+    }
+
+    pub fn display_name(&self) -> &str {
+        match self {
+            Self::Distilled600M => "NLLB 600M",
+            Self::Distilled1_3B => "NLLB 1.3B",
+        }
+    }
+
+    pub fn event_key(&self) -> &str {
+        match self {
+            Self::Distilled600M => "nllb_600m",
+            Self::Distilled1_3B => "nllb_1_3b",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "1.3B" | "1.3b" => Self::Distilled1_3B,
+            _ => Self::Distilled600M,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ModelDownloadProgress {
@@ -35,23 +74,27 @@ pub fn models_dir() -> PathBuf {
         .join("models")
 }
 
-/// Directory for the NLLB-600M model
-pub fn nllb_model_dir() -> PathBuf {
-    models_dir().join(NLLB_MODEL_DIR_NAME)
+/// Directory for a specific NLLB model variant
+pub fn nllb_model_dir(variant: NllbModelVariant) -> PathBuf {
+    models_dir().join(variant.dir_name())
 }
 
-/// Check if all required model files exist
-pub fn is_model_ready() -> bool {
-    let dir = nllb_model_dir();
+/// Check if all required model files exist for a variant
+pub fn is_model_ready(variant: NllbModelVariant) -> bool {
+    let dir = nllb_model_dir(variant);
     REQUIRED_FILES.iter().all(|f| dir.join(f).exists())
 }
 
-/// Download the NLLB model from HuggingFace with progress events
-pub async fn download_nllb_model(app_handle: tauri::AppHandle) -> Result<()> {
-    let model_dir = nllb_model_dir();
+/// Download a specific NLLB model variant from HuggingFace with progress events
+pub async fn download_nllb_model(
+    app_handle: tauri::AppHandle,
+    variant: NllbModelVariant,
+) -> Result<()> {
+    let model_dir = nllb_model_dir(variant);
     std::fs::create_dir_all(&model_dir)?;
 
     let client = reqwest::Client::new();
+    let event_key = variant.event_key().to_string();
 
     for file_name in REQUIRED_FILES {
         let dest = model_dir.join(file_name);
@@ -62,7 +105,7 @@ pub async fn download_nllb_model(app_handle: tauri::AppHandle) -> Result<()> {
             let _ = app_handle.emit(
                 "model-download-progress",
                 ModelDownloadProgress {
-                    model: "nllb".into(),
+                    model: event_key.clone(),
                     file: file_name.to_string(),
                     bytes_downloaded: 0,
                     bytes_total: None,
@@ -74,7 +117,7 @@ pub async fn download_nllb_model(app_handle: tauri::AppHandle) -> Result<()> {
         }
 
         let part_path = model_dir.join(format!("{}.part", file_name));
-        let url = format!("{}/{}", HF_BASE_URL, file_name);
+        let url = format!("{}/{}", variant.hf_repo_url(), file_name);
 
         tracing::info!("Downloading {} from {}", file_name, url);
 
@@ -110,7 +153,7 @@ pub async fn download_nllb_model(app_handle: tauri::AppHandle) -> Result<()> {
             let _ = app_handle.emit(
                 "model-download-progress",
                 ModelDownloadProgress {
-                    model: "nllb".into(),
+                    model: event_key.clone(),
                     file: file_name.to_string(),
                     bytes_downloaded: downloaded,
                     bytes_total: total_size,
@@ -126,7 +169,7 @@ pub async fn download_nllb_model(app_handle: tauri::AppHandle) -> Result<()> {
         let _ = app_handle.emit(
             "model-download-progress",
             ModelDownloadProgress {
-                model: "nllb".into(),
+                model: event_key.clone(),
                 file: file_name.to_string(),
                 bytes_downloaded: downloaded,
                 bytes_total: total_size,
@@ -141,12 +184,12 @@ pub async fn download_nllb_model(app_handle: tauri::AppHandle) -> Result<()> {
     Ok(())
 }
 
-/// Delete the NLLB model directory to free disk space
-pub fn delete_nllb_model() -> Result<()> {
-    let dir = nllb_model_dir();
+/// Delete a specific NLLB model variant directory to free disk space
+pub fn delete_nllb_model(variant: NllbModelVariant) -> Result<()> {
+    let dir = nllb_model_dir(variant);
     if dir.exists() {
         std::fs::remove_dir_all(&dir)?;
-        tracing::info!("Deleted NLLB model at {:?}", dir);
+        tracing::info!("Deleted {} model at {:?}", variant.display_name(), dir);
     }
     Ok(())
 }

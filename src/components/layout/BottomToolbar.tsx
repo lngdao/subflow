@@ -33,7 +33,7 @@ export function BottomToolbar() {
   const [binStatus, setBinStatus] = useState<BinaryStatus | null>(null);
   const [showDepsModal, setShowDepsModal] = useState(false);
   const [installing, setInstalling] = useState(false);
-  const [nllbDownloading, setNllbDownloading] = useState(false);
+  const [nllbDownloading, setNllbDownloading] = useState<string | null>(null);
   const [nllbProgress, setNllbProgress] = useState<ModelDownloadProgress | null>(null);
   const { update, checking, checkNow } = useUpdateChecker();
 
@@ -56,7 +56,7 @@ export function BottomToolbar() {
       setNllbProgress(event.payload);
       if (event.payload.status === "completed" && event.payload.file === "config.json") {
         // Last file completed, refresh status
-        setNllbDownloading(false);
+        setNllbDownloading(null);
         setNllbProgress(null);
         api.getBinaryStatus().then(setBinStatus).catch(console.error);
       }
@@ -80,29 +80,29 @@ export function BottomToolbar() {
     }
   }, [t]);
 
-  const handleDownloadNllb = useCallback(async () => {
-    setNllbDownloading(true);
+  const handleDownloadNllb = useCallback(async (variant: string) => {
+    setNllbDownloading(variant);
     setNllbProgress(null);
     try {
-      await api.downloadNllbModel();
+      await api.downloadNllbModel(variant);
       const status = await api.getBinaryStatus();
       setBinStatus(status);
-      toast.success("NLLB model downloaded");
+      toast.success(`NLLB ${variant} model downloaded`);
     } catch (e) {
       console.error("NLLB download failed:", e);
       toast.error(`NLLB download failed: ${e}`);
     } finally {
-      setNllbDownloading(false);
+      setNllbDownloading(null);
       setNllbProgress(null);
     }
   }, []);
 
-  const handleDeleteNllb = useCallback(async () => {
+  const handleDeleteNllb = useCallback(async (variant: string) => {
     try {
-      await api.deleteNllbModel();
+      await api.deleteNllbModel(variant);
       const status = await api.getBinaryStatus();
       setBinStatus(status);
-      toast.success("NLLB model deleted");
+      toast.success(`NLLB ${variant} model deleted`);
     } catch (e) {
       console.error("NLLB delete failed:", e);
       toast.error(`Delete failed: ${e}`);
@@ -270,73 +270,31 @@ export function BottomToolbar() {
                 t={t}
               />
 
-              {/* NLLB Model */}
-              <div className="rounded-lg bg-secondary/50 px-3 py-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">
-                        {t("deps.nllbModel")}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {t("deps.nllbModelDesc")}
-                      </span>
-                    </div>
-                    {binStatus?.nllb_model_path && (
-                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                        {binStatus.nllb_model_path}
-                      </p>
-                    )}
-                    {nllbDownloading && nllbProgress && (
-                      <div className="mt-1.5">
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                          <span>{nllbProgress.file}</span>
-                          <span>{Math.round(nllbProgress.percent)}%</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all duration-300"
-                            style={{ width: `${nllbProgress.percent}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="ml-3 flex-shrink-0">
-                    {binStatus?.nllb_model_available ? (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 text-emerald-500">
-                          <Check className="w-3.5 h-3.5" />
-                          <span className="text-[10px] font-medium">{t("deps.nllbReady")}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={handleDeleteNllb}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ) : nllbDownloading ? (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span className="text-[10px] font-medium">{t("deps.nllbDownloading")}</span>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 text-[10px] px-2"
-                        onClick={handleDownloadNllb}
-                      >
-                        <Download className="w-3 h-3" />
-                        {t("deps.nllbDownload")}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              {/* NLLB 600M Model */}
+              <NllbModelRow
+                name={t("deps.nllb600m")}
+                description={t("deps.nllb600mDesc")}
+                available={binStatus?.nllb_600m_available ?? false}
+                path={binStatus?.nllb_600m_path}
+                downloading={nllbDownloading === "600M"}
+                progress={nllbDownloading === "600M" ? nllbProgress : null}
+                onDownload={() => handleDownloadNllb("600M")}
+                onDelete={() => handleDeleteNllb("600M")}
+                t={t}
+              />
+
+              {/* NLLB 1.3B Model */}
+              <NllbModelRow
+                name={t("deps.nllb1_3b")}
+                description={t("deps.nllb1_3bDesc")}
+                available={binStatus?.nllb_1_3b_available ?? false}
+                path={binStatus?.nllb_1_3b_path}
+                downloading={nllbDownloading === "1.3B"}
+                progress={nllbDownloading === "1.3B" ? nllbProgress : null}
+                onDownload={() => handleDownloadNllb("1.3B")}
+                onDelete={() => handleDeleteNllb("1.3B")}
+                t={t}
+              />
             </div>
 
             {hasMissing && (
@@ -433,6 +391,93 @@ function DepRow({
             <span className="text-[10px] font-medium">{t("deps.missing")}</span>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function NllbModelRow({
+  name,
+  description,
+  available,
+  path,
+  downloading,
+  progress,
+  onDownload,
+  onDelete,
+  t,
+}: {
+  name: string;
+  description: string;
+  available: boolean;
+  path: string | null | undefined;
+  downloading: boolean;
+  progress: ModelDownloadProgress | null;
+  onDownload: () => void;
+  onDelete: () => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <div className="rounded-lg bg-secondary/50 px-3 py-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-foreground">{name}</span>
+            <span className="text-[10px] text-muted-foreground">{description}</span>
+          </div>
+          {path && (
+            <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+              {path}
+            </p>
+          )}
+          {downloading && progress && (
+            <div className="mt-1.5">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                <span>{progress.file}</span>
+                <span>{Math.round(progress.percent)}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${progress.percent}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="ml-3 flex-shrink-0">
+          {available ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-emerald-500">
+                <Check className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-medium">{t("deps.nllbReady")}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={onDelete}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          ) : downloading ? (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="text-[10px] font-medium">{t("deps.nllbDownloading")}</span>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-[10px] px-2"
+              onClick={onDownload}
+            >
+              <Download className="w-3 h-3" />
+              {t("deps.nllbDownload")}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

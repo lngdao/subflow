@@ -21,7 +21,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/animate-ui/components/radix/sheet";
-import { TRANSLATION_PROVIDERS, TTS_PROVIDERS } from "@/lib/constants";
+import { TRANSLATION_PROVIDERS, TTS_PROVIDERS, NLLB_MODELS } from "@/lib/constants";
 import { getApiKeyPreview } from "@/lib/tauri";
 import type { AppConfig } from "@/lib/types";
 
@@ -354,19 +354,45 @@ export function SettingsPanel() {
                   <Label className="text-sm text-secondary-foreground mb-1.5">
                     {t("settings.model")}
                   </Label>
-                  <Input
-                    value={local.translation.model || ""}
-                    onChange={(e) =>
-                      setLocal({
-                        ...local,
-                        translation: {
-                          ...local.translation,
-                          model: e.target.value || null,
-                        },
-                      })
-                    }
-                    placeholder="Model name..."
-                  />
+                  {local.translation.provider === "nllb" ? (
+                    <Select
+                      value={local.translation.model || "600M"}
+                      onValueChange={(v) =>
+                        setLocal({
+                          ...local,
+                          translation: {
+                            ...local.translation,
+                            model: v,
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {NLLB_MODELS.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.name} ({m.size})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={local.translation.model || ""}
+                      onChange={(e) =>
+                        setLocal({
+                          ...local,
+                          translation: {
+                            ...local.translation,
+                            model: e.target.value || null,
+                          },
+                        })
+                      }
+                      placeholder="Model name..."
+                    />
+                  )}
                 </div>
               )}
 

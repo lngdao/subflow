@@ -93,11 +93,13 @@ pub async fn get_binary_status() -> Result<binary_manager::BinaryStatus, Subflow
 }
 
 #[tauri::command]
-pub async fn download_nllb_model(app_handle: tauri::AppHandle) -> Result<(), SubflowError> {
-    crate::model_manager::download_nllb_model(app_handle).await
+pub async fn download_nllb_model(app_handle: tauri::AppHandle, variant: String) -> Result<(), SubflowError> {
+    let v = crate::model_manager::NllbModelVariant::from_str(&variant);
+    crate::model_manager::download_nllb_model(app_handle, v).await
 }
 
 #[tauri::command]
-pub async fn delete_nllb_model() -> Result<(), SubflowError> {
-    crate::model_manager::delete_nllb_model()
+pub async fn delete_nllb_model(variant: String) -> Result<(), SubflowError> {
+    let v = crate::model_manager::NllbModelVariant::from_str(&variant);
+    crate::model_manager::delete_nllb_model(v)
 }

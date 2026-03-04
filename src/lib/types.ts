@@ -118,8 +118,10 @@ export interface BinaryStatus {
   ffmpeg_available: boolean;
   ytdlp_path: string | null;
   ffmpeg_path: string | null;
-  nllb_model_available: boolean;
-  nllb_model_path: string | null;
+  nllb_600m_available: boolean;
+  nllb_600m_path: string | null;
+  nllb_1_3b_available: boolean;
+  nllb_1_3b_path: string | null;
 }
 
 export interface ModelDownloadProgress {

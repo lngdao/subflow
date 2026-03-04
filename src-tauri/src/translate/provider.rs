@@ -49,17 +49,25 @@ pub fn create_provider(
             base_url,
             Some(api_key).filter(|k| !k.is_empty()),
         ))),
+        #[cfg(feature = "nllb-native")]
         "nllb" => {
             // Native CTranslate2 provider
-            if !crate::model_manager::is_model_ready() {
-                return Err(crate::error::SubflowError::Translation(
-                    "NLLB model not downloaded. Open Dependencies to download.".into(),
-                ));
+            let variant = model
+                .map(crate::model_manager::NllbModelVariant::from_str)
+                .unwrap_or(crate::model_manager::NllbModelVariant::Distilled600M);
+            if !crate::model_manager::is_model_ready(variant) {
+                return Err(crate::error::SubflowError::Translation(format!(
+                    "{} not downloaded. Open Dependencies to download.",
+                    variant.display_name()
+                )));
             }
-            // create_provider is sync, but get_or_init_provider is async.
-            // We return a thin wrapper that lazily inits on first translate call.
-            Ok(Box::new(super::nllb_native::NllbNativeLazyProvider))
+            let model_dir = crate::model_manager::nllb_model_dir(variant);
+            Ok(Box::new(super::nllb_native::NllbNativeLazyProvider { model_dir }))
         }
+        #[cfg(not(feature = "nllb-native"))]
+        "nllb" => Err(crate::error::SubflowError::Translation(
+            "NLLB native translation is not available on this platform. Use NLLB-200 (Server) instead.".into(),
+        )),
         "nllb_api" => Ok(Box::new(super::nllb::NllbProvider::new(base_url))),
         _ => Err(crate::error::SubflowError::Translation(format!(
             "Unknown provider: {}",

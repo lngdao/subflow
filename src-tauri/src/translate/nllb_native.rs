@@ -20,20 +20,31 @@ pub struct NllbNativeProvider {
     sender: mpsc::Sender<TranslateRequest>,
 }
 
-static INSTANCE: OnceLock<Mutex<Option<Arc<NllbNativeProvider>>>> = OnceLock::new();
+struct LoadedState {
+    provider: Arc<NllbNativeProvider>,
+    model_dir: PathBuf,
+}
+
+static INSTANCE: OnceLock<Mutex<Option<LoadedState>>> = OnceLock::new();
 
 /// Get or lazily initialize the singleton NLLB native provider.
-pub async fn get_or_init_provider() -> Result<Arc<NllbNativeProvider>> {
+/// If model_dir differs from what's currently loaded, re-initializes.
+pub async fn get_or_init_provider(model_dir: PathBuf) -> Result<Arc<NllbNativeProvider>> {
     let lock = INSTANCE.get_or_init(|| Mutex::new(None));
     let mut guard = lock.lock().await;
 
-    if let Some(ref provider) = *guard {
-        return Ok(Arc::clone(provider));
+    if let Some(ref state) = *guard {
+        if state.model_dir == model_dir {
+            return Ok(Arc::clone(&state.provider));
+        }
+        tracing::info!("NLLB model switched, reinitializing...");
     }
 
-    let model_dir = crate::model_manager::nllb_model_dir();
-    let provider = Arc::new(NllbNativeProvider::new(model_dir)?);
-    *guard = Some(Arc::clone(&provider));
+    let provider = Arc::new(NllbNativeProvider::new(model_dir.clone())?);
+    *guard = Some(LoadedState {
+        provider: Arc::clone(&provider),
+        model_dir,
+    });
     Ok(provider)
 }
 
@@ -186,7 +197,9 @@ impl TranslationProvider for NllbNativeProvider {
 
 /// Lazy wrapper returned by `create_provider` (sync context).
 /// Initializes the actual NLLB native provider on the first async call.
-pub struct NllbNativeLazyProvider;
+pub struct NllbNativeLazyProvider {
+    pub model_dir: PathBuf,
+}
 
 #[async_trait]
 impl TranslationProvider for NllbNativeLazyProvider {
@@ -196,12 +209,12 @@ impl TranslationProvider for NllbNativeLazyProvider {
         source_lang: &str,
         target_lang: &str,
     ) -> Result<Vec<String>> {
-        let provider = get_or_init_provider().await?;
+        let provider = get_or_init_provider(self.model_dir.clone()).await?;
         provider.translate(texts, source_lang, target_lang).await
     }
 
     async fn test_connection(&self) -> Result<bool> {
-        let provider = get_or_init_provider().await?;
+        let provider = get_or_init_provider(self.model_dir.clone()).await?;
         provider.test_connection().await
     }
 

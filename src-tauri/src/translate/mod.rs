@@ -5,6 +5,7 @@ pub mod gemini;
 pub mod glm;
 pub mod libretranslate;
 pub mod nllb;
+#[cfg(feature = "nllb-native")]
 pub mod nllb_native;
 pub mod openai;
 pub mod provider;

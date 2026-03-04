@@ -96,10 +96,10 @@ export async function getBinaryStatus() {
   return invoke<BinaryStatus>("get_binary_status");
 }
 
-export async function downloadNllbModel() {
-  return invoke<void>("download_nllb_model");
+export async function downloadNllbModel(variant: string) {
+  return invoke<void>("download_nllb_model", { variant });
 }
 
-export async function deleteNllbModel() {
-  return invoke<void>("delete_nllb_model");
+export async function deleteNllbModel(variant: string) {
+  return invoke<void>("delete_nllb_model", { variant });
 }
