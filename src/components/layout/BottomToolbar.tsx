@@ -254,7 +254,7 @@ export function BottomToolbar() {
             {/* Update Section */}
             {update?.available && (
               <div className="mb-4 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2.5">
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-6">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
                       {t("update.available", { version: update.version })}
@@ -271,7 +271,6 @@ export function BottomToolbar() {
                     className="shrink-0"
                     onClick={handleDownloadUpdate}
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
                     {t("update.download")}
                   </Button>
                 </div>

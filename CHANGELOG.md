@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.2 - CI Fix (2026-03-08)
+
+### Fixed
+- CI: macOS x86_64 build failing — CTranslate2 (ct2rs) uses AVX512 instructions unsupported by Xcode clang when cross-compiling from ARM. Disable `nllb-native` for x86_64-apple-darwin (same as Windows ARM64)
+
+---
+
 ## v0.4.1 - Bugfixes (2026-03-08)
 
 ### Fixed

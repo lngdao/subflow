@@ -80,7 +80,7 @@ jobs:
           - platform: macos-latest
             target: x86_64-apple-darwin
             bundles: dmg
-            no_default_features: false
+            no_default_features: true
 
     runs-on: ${{ matrix.platform }}
     steps:
