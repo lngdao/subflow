@@ -60,27 +60,27 @@ jobs:
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             bundles: deb,rpm,appimage
-            extra_features: nllb-native
+            no_default_features: false
           - platform: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
             bundles: deb,rpm
-            extra_features: nllb-native
+            no_default_features: false
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
             bundles: msi,nsis
-            extra_features: nllb-native
+            no_default_features: false
           - platform: windows-latest
             target: aarch64-pc-windows-msvc
             bundles: msi,nsis
-            extra_features: ""
+            no_default_features: true
           - platform: macos-latest
             target: aarch64-apple-darwin
             bundles: dmg
-            extra_features: nllb-native
+            no_default_features: false
           - platform: macos-13
             target: x86_64-apple-darwin
             bundles: dmg
-            extra_features: nllb-native
+            no_default_features: false
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -174,4 +174,4 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: SubFlow ${{ github.ref_name }}
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          args: --target ${{ matrix.target }} --features vendored-openssl${{ matrix.extra_features != '' && format(',{0}', matrix.extra_features) || '' }} --bundles ${{ matrix.bundles }}
+          args: --target ${{ matrix.target }} --features vendored-openssl ${{ matrix.no_default_features == true && '--no-default-features' || '' }} --bundles ${{ matrix.bundles }}

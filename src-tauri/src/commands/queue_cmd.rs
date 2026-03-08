@@ -76,6 +76,7 @@ pub async fn add_task(
     source_lang: Option<String>,
     target_langs: Option<Vec<String>>,
     mode: Option<String>,
+    use_yt_translation: Option<bool>,
 ) -> Result<String, SubflowError> {
     let config = AppConfig::load()?;
     let source_lang = source_lang.unwrap_or(config.translation.source_lang);
@@ -87,7 +88,7 @@ pub async fn add_task(
     };
 
     let task = if let Some(ref url) = url {
-        Task::new_from_url(url, &source_lang, target_langs, processing_mode)
+        Task::new_from_url(url, &source_lang, target_langs, processing_mode, use_yt_translation.unwrap_or(false))
     } else if let Some(path) = file_path {
         Task::new_from_file(&path, &source_lang, target_langs, processing_mode)
     } else {

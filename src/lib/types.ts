@@ -56,6 +56,7 @@ export interface Task {
   source_lang: string;
   target_langs: string[];
   mode: ProcessingMode;
+  use_yt_translation: boolean;
   status: TaskStatus;
   progress: number;
   message: string;
@@ -122,6 +123,8 @@ export interface BinaryStatus {
   nllb_600m_path: string | null;
   nllb_1_3b_available: boolean;
   nllb_1_3b_path: string | null;
+  curl_cffi_available: boolean;
+  ytdlp_env_exists: boolean;
 }
 
 export interface ModelDownloadProgress {

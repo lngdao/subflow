@@ -15,6 +15,7 @@ interface UiStore {
   splashVisible: boolean;
   tabActionTrigger: number;
   addActionEnabled: boolean;
+  useYtTranslation: boolean;
   openSettings: () => void;
   closeSettings: () => void;
   toggleSettings: () => void;
@@ -25,6 +26,7 @@ interface UiStore {
   setAppReady: () => void;
   triggerTabAction: () => void;
   setAddActionEnabled: (enabled: boolean) => void;
+  setUseYtTranslation: (enabled: boolean) => void;
 }
 
 export const useUiStore = create<UiStore>((set) => ({
@@ -36,6 +38,7 @@ export const useUiStore = create<UiStore>((set) => ({
   splashVisible: true,
   tabActionTrigger: 0,
   addActionEnabled: false,
+  useYtTranslation: false,
   openSettings: () => set({ isSettingsOpen: true }),
   closeSettings: () => set({ isSettingsOpen: false }),
   toggleSettings: () => set((s) => ({ isSettingsOpen: !s.isSettingsOpen })),
@@ -50,4 +53,5 @@ export const useUiStore = create<UiStore>((set) => ({
   },
   triggerTabAction: () => set((s) => ({ tabActionTrigger: s.tabActionTrigger + 1 })),
   setAddActionEnabled: (enabled) => set({ addActionEnabled: enabled }),
+  setUseYtTranslation: (enabled) => set({ useYtTranslation: enabled }),
 }));

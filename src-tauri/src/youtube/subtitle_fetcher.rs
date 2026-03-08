@@ -93,7 +93,7 @@ struct CaptionTrack {
 }
 
 /// Get caption tracks via YouTube Innertube API (POST request).
-/// This returns fresh, valid caption URLs that don't expire like scraped ones.
+/// Uses ANDROID client which reliably returns caption track URLs.
 async fn get_caption_tracks_innertube(
     client: &Client,
     video_id: &str,

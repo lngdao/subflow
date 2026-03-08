@@ -35,8 +35,9 @@ export async function addTask(
   sourceLang?: string,
   targetLangs?: string[],
   mode?: string,
+  useYtTranslation?: boolean,
 ) {
-  return invoke<string>("add_task", { url, filePath, sourceLang, targetLangs, mode });
+  return invoke<string>("add_task", { url, filePath, sourceLang, targetLangs, mode, useYtTranslation });
 }
 
 export async function cancelTask(taskId: string) {
@@ -102,4 +103,12 @@ export async function downloadNllbModel(variant: string) {
 
 export async function deleteNllbModel(variant: string) {
   return invoke<void>("delete_nllb_model", { variant });
+}
+
+export async function setupYtdlpEnv() {
+  return invoke<BinaryStatus>("setup_ytdlp_env");
+}
+
+export async function deleteYtdlpEnv() {
+  return invoke<BinaryStatus>("delete_ytdlp_env");
 }

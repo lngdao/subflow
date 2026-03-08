@@ -69,7 +69,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             translation: TranslationConfig {
-                provider: "claude".to_string(),
+                provider: "anthropic".to_string(),
                 base_url: None,
                 model: Some("claude-haiku-4-5-20251001".to_string()),
                 source_lang: "auto".to_string(),

@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.4.0 - YouTube Auto-Translation & Provider Cleanup (2026-03-08)
+
+### Added
+
+**Backend**
+- YouTube auto-translated subtitle download via yt-dlp with `--impersonate Chrome` (browser TLS fingerprinting via `curl_cffi`)
+- `download_translated_subtitle()` in downloader — fetches YouTube server-side translations for any target language
+- `map_yt_sub_lang()` — maps app language codes to YouTube codes (`zh` → `zh-Hans`, `he` → `iw`, etc.)
+- `get_ytdlp_path()` now prioritizes venv yt-dlp (with curl_cffi) over standalone binary
+- Managed Python venv for yt-dlp + curl_cffi: `setup_ytdlp_env()` / `delete_ytdlp_env()` commands
+- `BinaryStatus` tracks `curl_cffi_available` and `ytdlp_env_exists` for UI state
+- `check_curl_cffi()` — checks impersonation availability (venv then system)
+- Smart retry in orchestrator: caches `original.{format}` subtitle, skips re-download on retry
+- YouTube translation pre-fetch step in orchestrator before per-language processing
+- `reqwest` `cookies` feature enabled for cookie jar support
+
+**Frontend**
+- YouTube Impersonation (curl_cffi) row in Dependencies modal with install/delete
+- `useYtTranslation` checkbox on Source tab (experimental YouTube auto-translated subtitles)
+- `useYtTranslation` state persisted in UI store
+- `setupYtdlpEnv()` / `deleteYtdlpEnv()` Tauri API bindings
+
+### Changed
+- **Translation provider registry restructured**: removed duplicate entries (`Claude Haiku` + `Anthropic Messages` merged into `Anthropic (Claude)`, `OpenAI GPT-4o` + `OpenAI Compatible` split properly)
+- Provider definitions now include `defaultModel`, `modelPlaceholder`, `baseUrlPlaceholder` metadata
+- Settings panel uses provider-specific placeholders for model and base URL inputs
+- Default provider changed from `"claude"` to `"anthropic"` (backend keeps `"claude"` alias for backward compat)
+- Switching provider now resets model to `null` to prevent stale model values leaking
+- NLLB native: tuned CTranslate2 config — `beam_size: 1`, `ComputeType::AUTO`, uses half CPU cores (2–8 threads)
+
+### Fixed
+- Edge TTS `chunk_text` panic on multi-byte UTF-8: finds char-safe boundary before slicing
+- YouTube 429 rate limiting on auto-translated subtitles — solved via yt-dlp browser impersonation
+- Delete YouTube Impersonation showing "Ready" after restart when system yt-dlp had curl_cffi — now checks `ytdlp_env_exists` separately
+
+### Meta
+- Added MIT LICENSE
+- Added README.md
+
+---
+
 ## v0.3.1 - NLLB Multi-Model Support (2026-03-04)
 
 ### Added

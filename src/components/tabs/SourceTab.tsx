@@ -21,6 +21,8 @@ export function SourceTab() {
   const setAddActionEnabled = useUiStore((s) => s.setAddActionEnabled);
   const [urlInput, setUrlInput] = useState("");
   const [mode, setMode] = useState("sub_translate_tts");
+  const useYtTranslation = useUiStore((s) => s.useYtTranslation);
+  const setUseYtTranslation = useUiStore((s) => s.setUseYtTranslation);
 
   // Update header Add button enabled state based on input
   useEffect(() => {
@@ -40,7 +42,7 @@ export function SourceTab() {
     for (const line of lines) {
       try {
         new URL(line);
-        await addTask(line, undefined, mode);
+        await addTask(line, undefined, mode, useYtTranslation);
         added++;
       } catch {
         // skip invalid URLs
@@ -52,7 +54,7 @@ export function SourceTab() {
     } else if (lines.length > 0) {
       toast.error("No valid URLs found");
     }
-  }, [urlInput, addTask, mode]);
+  }, [urlInput, addTask, mode, useYtTranslation]);
 
   // Listen for [+] button trigger from AppShell
   useEffect(() => {
@@ -105,6 +107,21 @@ export function SourceTab() {
             ))}
           </div>
         </div>
+
+        {/* YouTube Translation Option */}
+        {mode !== "sub_only" && (
+          <label className="flex items-center gap-2 mt-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useYtTranslation}
+              onChange={(e) => setUseYtTranslation(e.target.checked)}
+              className="rounded border-border"
+            />
+            <span className="text-xs text-muted-foreground">
+              {t("config.useYtTranslation")}
+            </span>
+          </label>
+        )}
       </div>
 
       {/* Processing Config */}

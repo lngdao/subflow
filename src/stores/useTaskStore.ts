@@ -5,7 +5,7 @@ import * as api from "@/lib/tauri";
 interface TaskStore {
   tasks: Task[];
   loading: boolean;
-  addTask: (url?: string, filePath?: string, mode?: string) => Promise<void>;
+  addTask: (url?: string, filePath?: string, mode?: string, useYtTranslation?: boolean) => Promise<void>;
   loadTasks: () => Promise<void>;
   updateFromEvent: (event: TaskEvent) => void;
   cancelTask: (taskId: string) => Promise<void>;
@@ -19,8 +19,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   loading: false,
 
-  addTask: async (url, filePath, mode) => {
-    await api.addTask(url, filePath, undefined, undefined, mode);
+  addTask: async (url, filePath, mode, useYtTranslation) => {
+    await api.addTask(url, filePath, undefined, undefined, mode, useYtTranslation);
     // Reload tasks to get the new task
     await get().loadTasks();
   },

@@ -103,3 +103,15 @@ pub async fn delete_nllb_model(variant: String) -> Result<(), SubflowError> {
     let v = crate::model_manager::NllbModelVariant::from_str(&variant);
     crate::model_manager::delete_nllb_model(v)
 }
+
+#[tauri::command]
+pub async fn setup_ytdlp_env() -> Result<binary_manager::BinaryStatus, SubflowError> {
+    binary_manager::setup_ytdlp_env().await?;
+    Ok(binary_manager::check_status().await)
+}
+
+#[tauri::command]
+pub async fn delete_ytdlp_env() -> Result<binary_manager::BinaryStatus, SubflowError> {
+    binary_manager::delete_ytdlp_env()?;
+    Ok(binary_manager::check_status().await)
+}

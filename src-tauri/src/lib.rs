@@ -52,6 +52,8 @@ pub fn run() {
             settings_cmd::get_binary_status,
             settings_cmd::download_nllb_model,
             settings_cmd::delete_nllb_model,
+            settings_cmd::setup_ytdlp_env,
+            settings_cmd::delete_ytdlp_env,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

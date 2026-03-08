@@ -12,18 +12,38 @@ export const LANGUAGES = [
   { code: "en", name: "English" },
 ] as const;
 
-export const TRANSLATION_PROVIDERS = [
-  { id: "claude", name: "Claude Haiku", hasApiKey: true, hasBaseUrl: true, hasModel: true },
-  { id: "glm", name: "GLM-5 (z.ai)", hasApiKey: true, hasBaseUrl: true, hasModel: true },
-  { id: "openai", name: "OpenAI GPT-4o", hasApiKey: true, hasBaseUrl: true, hasModel: true },
-  { id: "gemini", name: "Gemini Flash", hasApiKey: true, hasBaseUrl: false, hasModel: true },
+export interface TranslationProviderDef {
+  id: string;
+  name: string;
+  hasApiKey: boolean;
+  hasBaseUrl: boolean;
+  hasModel: boolean;
+  defaultModel?: string;
+  modelPlaceholder?: string;
+  baseUrlPlaceholder?: string;
+}
+
+export const TRANSLATION_PROVIDERS: TranslationProviderDef[] = [
+  { id: "anthropic", name: "Anthropic (Claude)", hasApiKey: true, hasBaseUrl: true, hasModel: true,
+    defaultModel: "claude-haiku-4-5-20251001", modelPlaceholder: "claude-haiku-4-5-20251001",
+    baseUrlPlaceholder: "https://api.anthropic.com" },
+  { id: "openai", name: "OpenAI", hasApiKey: true, hasBaseUrl: true, hasModel: true,
+    defaultModel: "gpt-4o-mini", modelPlaceholder: "gpt-4o-mini",
+    baseUrlPlaceholder: "https://api.openai.com" },
+  { id: "gemini", name: "Google Gemini", hasApiKey: true, hasBaseUrl: false, hasModel: true,
+    defaultModel: "gemini-2.0-flash", modelPlaceholder: "gemini-2.0-flash" },
+  { id: "glm", name: "GLM (Zhipu AI)", hasApiKey: true, hasBaseUrl: true, hasModel: true,
+    defaultModel: "glm-5", modelPlaceholder: "glm-5",
+    baseUrlPlaceholder: "https://open.bigmodel.cn/api/paas" },
   { id: "deepl", name: "DeepL", hasApiKey: true, hasBaseUrl: false, hasModel: false },
-  { id: "libretranslate", name: "LibreTranslate", hasApiKey: false, hasBaseUrl: true, hasModel: false },
+  { id: "openai_compatible", name: "OpenAI Compatible", hasApiKey: true, hasBaseUrl: true, hasModel: true,
+    modelPlaceholder: "model-name", baseUrlPlaceholder: "https://api.example.com" },
+  { id: "libretranslate", name: "LibreTranslate", hasApiKey: false, hasBaseUrl: true, hasModel: false,
+    baseUrlPlaceholder: "http://localhost:5000" },
   { id: "nllb", name: "NLLB-200 (Local)", hasApiKey: false, hasBaseUrl: false, hasModel: true },
-  { id: "nllb_api", name: "NLLB-200 (Server)", hasApiKey: false, hasBaseUrl: true, hasModel: false },
-  { id: "openai_compatible", name: "OpenAI Compatible", hasApiKey: true, hasBaseUrl: true, hasModel: true },
-  { id: "anthropic", name: "Anthropic Messages", hasApiKey: true, hasBaseUrl: true, hasModel: true },
-] as const;
+  { id: "nllb_api", name: "NLLB-200 (Server)", hasApiKey: false, hasBaseUrl: true, hasModel: false,
+    baseUrlPlaceholder: "http://localhost:7860" },
+];
 
 export const NLLB_MODELS = [
   { id: "600M", name: "NLLB 600M", size: "~2.5 GB" },

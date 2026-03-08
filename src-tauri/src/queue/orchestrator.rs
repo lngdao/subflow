@@ -182,46 +182,48 @@ impl Orchestrator {
                 .ok_or_else(|| SubflowError::TaskNotFound(task_id.to_string()))?
         };
 
-        // Step 1: Get subtitle content
-        self.emit_event(&app_handle, task_id, TaskStatus::Downloading, 0.05, "Getting subtitle...", None).await;
+        // Determine output dir early for smart retry checks
+        let video_id = task.video_id.as_deref().unwrap_or(&task.id);
+        let output_dir = PathBuf::from(&config.output.folder).join(video_id);
+        let out_format = SubtitleFormat::from_extension(&config.output.format)
+            .unwrap_or(SubtitleFormat::Srt);
+        let original_path = output_dir.join(format!("original.{}", config.output.format));
 
-        let subtitle_content = if let Some(url) = &task.url {
-            // Download from URL via source provider (YouTube, Vimeo, etc.)
-            let output_dir = PathBuf::from(&config.output.folder).join(
-                task.video_id.as_deref().unwrap_or("temp"),
-            );
-
-            let sub_path = crate::source::provider::download_subtitle(
-                url,
-                &output_dir,
-                &task.source_lang,
-            )
-            .await?;
-
-            std::fs::read_to_string(&sub_path)?
-        } else if let Some(path) = &task.file_path {
-            std::fs::read_to_string(path)?
+        // Step 1: Get subtitle — reuse cached original on retry
+        let subtitle = if original_path.exists() {
+            self.emit_event(&app_handle, task_id, TaskStatus::Downloading, 0.05, "Using cached subtitle...", None).await;
+            let content = std::fs::read_to_string(&original_path)?;
+            parser::parse_auto(&content)?
         } else {
-            return Err(SubflowError::Queue(
-                "Task has no URL or file path".to_string(),
-            ));
+            self.emit_event(&app_handle, task_id, TaskStatus::Downloading, 0.05, "Getting subtitle...", None).await;
+
+            let subtitle_content = if let Some(url) = &task.url {
+                let dl_dir = PathBuf::from(&config.output.folder).join(
+                    task.video_id.as_deref().unwrap_or("temp"),
+                );
+                let sub_path = crate::source::provider::download_subtitle(
+                    url, &dl_dir, &task.source_lang,
+                ).await?;
+                std::fs::read_to_string(&sub_path)?
+            } else if let Some(path) = &task.file_path {
+                std::fs::read_to_string(path)?
+            } else {
+                return Err(SubflowError::Queue(
+                    "Task has no URL or file path".to_string(),
+                ));
+            };
+
+            let parsed = parser::parse_auto(&subtitle_content)?;
+            std::fs::create_dir_all(&output_dir)?;
+            std::fs::write(&original_path, writer::write_as(&parsed, &out_format))?;
+            parsed
         };
 
         // Check cancellation + pause
         self.check_cancelled(task_id).await?;
         self.wait_if_paused(task_id).await?;
 
-        // Parse subtitle
-        let subtitle = parser::parse_auto(&subtitle_content)?;
-        let video_id = task.video_id.as_deref().unwrap_or(&task.id);
-        let output_dir = PathBuf::from(&config.output.folder).join(video_id);
         std::fs::create_dir_all(&output_dir)?;
-
-        // Save original
-        let original_path = output_dir.join(format!("original.{}", config.output.format));
-        let out_format = SubtitleFormat::from_extension(&config.output.format)
-            .unwrap_or(SubtitleFormat::Srt);
-        std::fs::write(&original_path, writer::write_as(&subtitle, &out_format))?;
 
         // Update task with output dir
         {
@@ -244,6 +246,39 @@ impl Orchestrator {
                 }
             }
             return Ok(());
+        }
+
+        // YouTube auto-translation: pre-fetch translated subs before processing
+        // The smart retry in process_single_lang will detect existing files and skip translation
+        if task.use_yt_translation {
+            if let Some(url) = task.url.as_deref() {
+                self.emit_event(&app_handle, task_id, TaskStatus::Downloading, 0.08, "Fetching YouTube translations...", None).await;
+                for target_lang in &task.target_langs {
+                    let sub_path = output_dir.join(format!("{}.{}", target_lang, config.output.format));
+                    if !sub_path.exists() {
+                        match crate::youtube::downloader::download_translated_subtitle(url, &output_dir, target_lang).await {
+                            Ok(dl_path) => {
+                                // yt-dlp may save with different name, read and re-save in our format
+                                if let Ok(content) = std::fs::read_to_string(&dl_path) {
+                                    if let Ok(parsed) = parser::parse_auto(&content) {
+                                        let _ = std::fs::write(&sub_path, writer::write_as(&parsed, &out_format));
+                                        // Clean up yt-dlp's file if it differs from our target
+                                        if dl_path != sub_path {
+                                            let _ = std::fs::remove_file(&dl_path);
+                                        }
+                                        tracing::info!("YouTube translation for {} saved via yt-dlp", target_lang);
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                tracing::warn!("YouTube translation for {} not available: {}, will use provider", target_lang, e);
+                            }
+                        }
+                    }
+                }
+            } else {
+                tracing::warn!("use_yt_translation enabled but no URL available");
+            }
         }
 
         let total_langs = task.target_langs.len();
@@ -364,88 +399,103 @@ impl Orchestrator {
             let _ = std::fs::remove_dir_all(&tts_chunks_dir);
         }
 
-        self.update_lang_progress(
-            app_handle, task_id, target_lang, 0.0, total_langs, progress_tracker,
-            TaskStatus::Translating,
-            &format!("Translating to {}...", target_lang),
-        ).await;
-
-        // Create translation provider
-        let provider = translate_provider::create_provider(
-            &config.translation.provider,
-            api_key,
-            config.translation.base_url.as_deref(),
-            config.translation.model.as_deref(),
-        )?;
-
-        // Chunk and translate
-        let chunks = chunker::chunk_entries(&subtitle.entries, None);
-        let mut translated_texts = Vec::new();
+        let sub_path = output_dir.join(format!("{}.{}", target_lang, config.output.format));
         let pipeline_tts = config.queue.pipeline_tts && *mode == ProcessingMode::SubTranslateTts;
 
-        // For pipeline TTS: collect chunk audio files to merge later
-        let temp_dir = &tts_chunks_dir;
-        if pipeline_tts {
-            std::fs::create_dir_all(temp_dir)?;
-        }
+        // Smart retry: reuse existing translation if available on disk
+        let (translated_sub, did_pipeline_tts) = if sub_path.exists() {
+            self.update_lang_progress(
+                app_handle, task_id, target_lang, 0.6, total_langs, progress_tracker,
+                TaskStatus::Translating,
+                &format!("Reusing cached translation for {}...", target_lang),
+            ).await;
+            let content = std::fs::read_to_string(&sub_path)?;
+            let parsed = parser::parse_auto(&content)?;
+            (parsed, false)
+        } else {
+            self.update_lang_progress(
+                app_handle, task_id, target_lang, 0.0, total_langs, progress_tracker,
+                TaskStatus::Translating,
+                &format!("Translating to {}...", target_lang),
+            ).await;
 
-        let tts_provider_instance = if pipeline_tts || *mode == ProcessingMode::SubTranslateTts {
-            let tts_api_key = if config.tts.provider == "openai" {
-                Some(self.get_api_key("openai_tts").await)
+            // Create translation provider
+            let provider = translate_provider::create_provider(
+                &config.translation.provider,
+                api_key,
+                config.translation.base_url.as_deref(),
+                config.translation.model.as_deref(),
+            )?;
+
+            // Chunk and translate
+            let chunks = chunker::chunk_entries(&subtitle.entries, None);
+            let mut translated_texts = Vec::new();
+
+            // For pipeline TTS: collect chunk audio files to merge later
+            let temp_dir = &tts_chunks_dir;
+            if pipeline_tts {
+                std::fs::create_dir_all(temp_dir)?;
+            }
+
+            let tts_prov = if pipeline_tts {
+                let tts_api_key = if config.tts.provider == "openai" {
+                    Some(self.get_api_key("openai_tts").await)
+                } else {
+                    None
+                };
+                Some(tts_provider::create_provider_with_opts(
+                    &config.tts.provider,
+                    tts_api_key.as_deref(),
+                    Some(config.queue.tts_chunk_size as usize),
+                )?)
             } else {
                 None
             };
-            Some(tts_provider::create_provider_with_opts(
-                &config.tts.provider,
-                tts_api_key.as_deref(),
-                Some(config.queue.tts_chunk_size as usize),
-            )?)
-        } else {
-            None
-        };
 
-        for (chunk_idx, chunk) in chunks.iter().enumerate() {
-            self.check_cancelled(task_id).await?;
-            self.wait_if_paused(task_id).await?;
+            for (chunk_idx, chunk) in chunks.iter().enumerate() {
+                self.check_cancelled(task_id).await?;
+                self.wait_if_paused(task_id).await?;
 
-            let texts: Vec<String> = chunk.entries.iter().map(|(_, t)| t.clone()).collect();
-            let result = provider
-                .translate(&texts, source_lang, target_lang)
-                .await?;
+                let texts: Vec<String> = chunk.entries.iter().map(|(_, t)| t.clone()).collect();
+                let result = provider
+                    .translate(&texts, source_lang, target_lang)
+                    .await?;
 
-            // Pipeline TTS: synthesize this chunk immediately after translation
-            if pipeline_tts {
-                if let Some(ref tts) = tts_provider_instance {
-                    let chunk_text: String = result.join(". ");
-                    let chunk_audio_path = temp_dir.join(format!("chunk_{:04}.mp3", chunk_idx));
-                    let voice = self.get_voice_for_lang(target_lang, config);
-                    tts.synthesize(&chunk_text, &voice, config.tts.speed, &chunk_audio_path)
-                        .await?;
+                // Pipeline TTS: synthesize this chunk immediately after translation
+                if pipeline_tts {
+                    if let Some(ref tts) = tts_prov {
+                        let chunk_text: String = result.join(". ");
+                        let chunk_audio_path = temp_dir.join(format!("chunk_{:04}.mp3", chunk_idx));
+                        let voice = self.get_voice_for_lang(target_lang, config);
+                        tts.synthesize(&chunk_text, &voice, config.tts.speed, &chunk_audio_path)
+                            .await?;
+                    }
                 }
+
+                translated_texts.extend(result);
+
+                let chunk_frac = (chunk_idx + 1) as f32 / chunks.len() as f32;
+                let lang_frac = if pipeline_tts { chunk_frac * 0.9 } else { chunk_frac * 0.6 };
+
+                self.update_lang_progress(
+                    app_handle, task_id, target_lang, lang_frac, total_langs, progress_tracker,
+                    TaskStatus::Translating,
+                    &format!("Translating to {} ({}/{} chunks)...", target_lang, chunk_idx + 1, chunks.len()),
+                ).await;
             }
 
-            translated_texts.extend(result);
+            // Build translated subtitle file
+            let mut translated_sub = subtitle.clone();
+            translated_sub.format = out_format.clone();
+            for (entry, text) in translated_sub.entries.iter_mut().zip(translated_texts.iter()) {
+                entry.text = text.clone();
+            }
 
-            let chunk_frac = (chunk_idx + 1) as f32 / chunks.len() as f32;
-            let lang_frac = if pipeline_tts { chunk_frac * 0.9 } else { chunk_frac * 0.6 };
+            // Save translated subtitle
+            std::fs::write(&sub_path, writer::write_as(&translated_sub, out_format))?;
 
-            self.update_lang_progress(
-                app_handle, task_id, target_lang, lang_frac, total_langs, progress_tracker,
-                TaskStatus::Translating,
-                &format!("Translating to {} ({}/{} chunks)...", target_lang, chunk_idx + 1, chunks.len()),
-            ).await;
-        }
-
-        // Build translated subtitle file
-        let mut translated_sub = subtitle.clone();
-        translated_sub.format = out_format.clone();
-        for (entry, text) in translated_sub.entries.iter_mut().zip(translated_texts.iter()) {
-            entry.text = text.clone();
-        }
-
-        // Save translated subtitle
-        let sub_path = output_dir.join(format!("{}.{}", target_lang, config.output.format));
-        std::fs::write(&sub_path, writer::write_as(&translated_sub, out_format))?;
+            (translated_sub, pipeline_tts)
+        };
 
         // Generate TTS (if SubTranslateTts mode)
         if *mode == ProcessingMode::SubTranslateTts {
@@ -454,7 +504,7 @@ impl Orchestrator {
 
             let audio_path = output_dir.join(format!("{}.mp3", target_lang));
 
-            if pipeline_tts {
+            if did_pipeline_tts {
                 // Merge chunk audio files
                 self.update_lang_progress(
                     app_handle, task_id, target_lang, 0.9, total_langs, progress_tracker,
@@ -462,29 +512,38 @@ impl Orchestrator {
                     &format!("Merging TTS audio for {}...", target_lang),
                 ).await;
 
-                merge_mp3_chunks(&temp_dir, &audio_path)?;
+                merge_mp3_chunks(&tts_chunks_dir, &audio_path)?;
                 // Clean up temp chunks
-                let _ = std::fs::remove_dir_all(&temp_dir);
+                let _ = std::fs::remove_dir_all(&tts_chunks_dir);
             } else {
-                // Non-pipeline: synthesize all at once
+                // Synthesize all at once (also used on smart retry)
                 self.update_lang_progress(
                     app_handle, task_id, target_lang, 0.6, total_langs, progress_tracker,
                     TaskStatus::GeneratingTts,
                     &format!("Generating TTS for {}...", target_lang),
                 ).await;
 
-                if let Some(ref tts) = tts_provider_instance {
-                    let full_text: String = translated_sub
-                        .entries
-                        .iter()
-                        .map(|e| e.text.as_str())
-                        .collect::<Vec<_>>()
-                        .join(". ");
+                let tts_api_key = if config.tts.provider == "openai" {
+                    Some(self.get_api_key("openai_tts").await)
+                } else {
+                    None
+                };
+                let tts = tts_provider::create_provider_with_opts(
+                    &config.tts.provider,
+                    tts_api_key.as_deref(),
+                    Some(config.queue.tts_chunk_size as usize),
+                )?;
 
-                    let voice = self.get_voice_for_lang(target_lang, config);
-                    tts.synthesize(&full_text, &voice, config.tts.speed, &audio_path)
-                        .await?;
-                }
+                let full_text: String = translated_sub
+                    .entries
+                    .iter()
+                    .map(|e| e.text.as_str())
+                    .collect::<Vec<_>>()
+                    .join(". ");
+
+                let voice = self.get_voice_for_lang(target_lang, config);
+                tts.synthesize(&full_text, &voice, config.tts.speed, &audio_path)
+                    .await?;
             }
         }
 
@@ -646,3 +705,4 @@ pub fn keyring_set(service: &str, value: &str) -> std::result::Result<(), String
     let key_path = key_dir.join(service);
     std::fs::write(&key_path, value).map_err(|e| e.to_string())
 }
+

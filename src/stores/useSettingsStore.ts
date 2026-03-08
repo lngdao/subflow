@@ -21,7 +21,7 @@ interface SettingsStore {
 
 const DEFAULT_SETTINGS: AppConfig = {
   translation: {
-    provider: "claude",
+    provider: "anthropic",
     base_url: null,
     model: "claude-haiku-4-5-20251001",
     source_lang: "auto",

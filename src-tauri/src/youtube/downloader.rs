@@ -50,9 +50,19 @@ pub async fn check_ytdlp() -> Result<()> {
     }
 }
 
-/// Get path to yt-dlp binary. Checks app data dir first, then falls back to system PATH.
+/// Get path to yt-dlp binary. Checks: venv (with curl_cffi) → local binary → system PATH.
 pub fn get_ytdlp_path() -> String {
     if let Some(config_dir) = dirs::config_dir() {
+        // Prefer venv yt-dlp (has curl_cffi for impersonation)
+        #[cfg(target_os = "windows")]
+        let venv_bin = config_dir.join("subflow").join("ytdlp-env").join("Scripts").join("yt-dlp.exe");
+        #[cfg(not(target_os = "windows"))]
+        let venv_bin = config_dir.join("subflow").join("ytdlp-env").join("bin").join("yt-dlp");
+        if venv_bin.exists() {
+            return venv_bin.to_string_lossy().to_string();
+        }
+
+        // Fall back to standalone binary
         let local_bin = config_dir.join("subflow").join("bin").join("yt-dlp");
         if local_bin.exists() {
             return local_bin.to_string_lossy().to_string();
@@ -94,6 +104,90 @@ pub async fn download_subtitle(
     download_subtitle_ytdlp(&clean_url, output_dir, sub_lang).await
 }
 
+/// Map common language codes to YouTube's auto-caption language codes.
+/// YouTube uses specific codes like "zh-Hans" instead of plain "zh".
+fn map_yt_sub_lang(lang: &str) -> String {
+    match lang {
+        "zh" => "zh-Hans".to_string(),
+        "zh-tw" | "zh-TW" => "zh-Hant".to_string(),
+        "iw" | "he" => "iw".to_string(), // Hebrew
+        "fil" | "tl" => "fil".to_string(), // Filipino
+        "nb" | "nn" => "no".to_string(), // Norwegian
+        _ => lang.to_string(),
+    }
+}
+
+/// Download YouTube auto-translated subtitle for a specific target language using yt-dlp.
+/// YouTube generates translations server-side from the source caption track.
+/// Returns the path to the downloaded SRT file, or error if unavailable.
+pub async fn download_translated_subtitle(
+    url: &str,
+    output_dir: &Path,
+    target_lang: &str,
+) -> Result<PathBuf> {
+    check_ytdlp().await?;
+    std::fs::create_dir_all(output_dir)?;
+
+    let clean_url = clean_youtube_url(url);
+    let yt_dlp = get_ytdlp_path();
+    let ffmpeg_path = get_ffmpeg_path();
+    let yt_lang = map_yt_sub_lang(target_lang);
+
+    let mut args = vec![
+        "--no-playlist".to_string(),
+        "--write-auto-sub".to_string(),
+        "--sub-format".to_string(),
+        "srt".to_string(),
+        "--sub-lang".to_string(),
+        yt_lang.clone(),
+        "--skip-download".to_string(),
+        "--impersonate".to_string(),
+        "Chrome".to_string(),
+        "--output".to_string(),
+        output_dir.join("%(id)s").to_string_lossy().to_string(),
+    ];
+
+    if ffmpeg_path != "ffmpeg" {
+        args.push("--ffmpeg-location".to_string());
+        args.push(ffmpeg_path);
+    }
+
+    args.push(clean_url.to_string());
+
+    tracing::debug!("yt-dlp auto-translated subtitle: {} (yt: {}) -> {}", target_lang, yt_lang, output_dir.display());
+
+    let output = Command::new(&yt_dlp)
+        .args(&args)
+        .output()
+        .await
+        .map_err(|e| SubflowError::YouTube(format!("Failed to run yt-dlp: {}", e)))?;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !output.status.success() {
+        return Err(SubflowError::YouTube(format!(
+            "yt-dlp translated subtitle failed: {}",
+            stderr
+        )));
+    }
+
+    // Find the downloaded subtitle file — check for both original lang code and yt-mapped code
+    let entries = std::fs::read_dir(output_dir)?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = path.file_name().unwrap_or_default().to_string_lossy();
+        if (name.contains(&format!(".{}.", yt_lang)) || name.contains(&format!(".{}-", yt_lang)))
+            && (name.ends_with(".srt") || name.ends_with(".vtt"))
+        {
+            return Ok(path);
+        }
+    }
+
+    Err(SubflowError::YouTube(format!(
+        "No translated subtitle file found for {}",
+        target_lang
+    )))
+}
+
 async fn download_subtitle_ytdlp(
     clean_url: &str,
     output_dir: &Path,
@@ -117,11 +211,8 @@ async fn download_subtitle_ytdlp(
         "--sub-langs".to_string(),
         effective_lang.to_string(),
         "--skip-download".to_string(),
-        // Avoid impersonation requirement + reduce 429 errors
-        "--extractor-args".to_string(),
-        "youtube:player_client=mweb,web".to_string(),
-        "--sleep-requests".to_string(),
-        "1".to_string(),
+        "--impersonate".to_string(),
+        "Chrome".to_string(),
         "--output".to_string(),
         output_dir.join("%(id)s").to_string_lossy().to_string(),
     ];

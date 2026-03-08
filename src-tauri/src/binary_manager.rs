@@ -11,6 +11,23 @@ fn bin_dir() -> PathBuf {
         .join("bin")
 }
 
+/// Directory for the Python venv with yt-dlp + curl_cffi
+fn ytdlp_env_dir() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
+        .join("subflow")
+        .join("ytdlp-env")
+}
+
+/// Get the yt-dlp binary path from the venv
+fn ytdlp_env_bin() -> PathBuf {
+    let env = ytdlp_env_dir();
+    #[cfg(target_os = "windows")]
+    { env.join("Scripts").join("yt-dlp.exe") }
+    #[cfg(not(target_os = "windows"))]
+    { env.join("bin").join("yt-dlp") }
+}
+
 /// Check if a binary exists and is executable
 fn binary_exists(name: &str) -> bool {
     let path = bin_dir().join(name);
@@ -97,8 +114,14 @@ async fn download_binary(url: &str, dest: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-/// Ensure yt-dlp is available. Downloads if not found.
+/// Ensure yt-dlp is available. Checks: venv → local binary → system PATH → download standalone.
 pub async fn ensure_ytdlp() -> Result<PathBuf> {
+    // Prefer venv with curl_cffi (supports impersonation)
+    let env_bin = ytdlp_env_bin();
+    if env_bin.exists() {
+        return Ok(env_bin);
+    }
+
     let bin = bin_dir();
     let ytdlp_path = bin.join("yt-dlp");
 
@@ -112,7 +135,7 @@ pub async fn ensure_ytdlp() -> Result<PathBuf> {
         return Ok(PathBuf::from("yt-dlp"));
     }
 
-    // Download it
+    // Download standalone binary
     std::fs::create_dir_all(&bin)?;
     let url = ytdlp_download_url();
     download_binary(url, &ytdlp_path).await?;
@@ -161,15 +184,125 @@ pub struct BinaryStatus {
     pub nllb_600m_path: Option<String>,
     pub nllb_1_3b_available: bool,
     pub nllb_1_3b_path: Option<String>,
+    pub curl_cffi_available: bool,
+    /// True if we have a managed venv (user can delete it)
+    pub ytdlp_env_exists: bool,
+}
+
+/// Set up a Python venv with yt-dlp + curl_cffi for browser impersonation.
+/// Required for downloading YouTube auto-translated subtitles without 429 errors.
+pub async fn setup_ytdlp_env() -> Result<()> {
+    let env_dir = ytdlp_env_dir();
+
+    // Find python3
+    let python = find_python().await
+        .ok_or_else(|| SubflowError::Config("Python 3 not found. Install Python 3 first.".to_string()))?;
+
+    tracing::info!("Setting up yt-dlp env with Python: {}", python);
+
+    // Create venv
+    let output = Command::new(&python)
+        .args(["-m", "venv", &env_dir.to_string_lossy()])
+        .output()
+        .await
+        .map_err(|e| SubflowError::Config(format!("Failed to create venv: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(SubflowError::Config(format!("venv creation failed: {}", stderr)));
+    }
+
+    // Get pip path in venv
+    #[cfg(target_os = "windows")]
+    let pip = env_dir.join("Scripts").join("pip");
+    #[cfg(not(target_os = "windows"))]
+    let pip = env_dir.join("bin").join("pip");
+
+    // Install yt-dlp + curl_cffi
+    let output = Command::new(&pip)
+        .args(["install", "--upgrade", "yt-dlp", "curl_cffi"])
+        .output()
+        .await
+        .map_err(|e| SubflowError::Config(format!("pip install failed: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        // Clean up failed venv
+        let _ = std::fs::remove_dir_all(&env_dir);
+        return Err(SubflowError::Config(format!("pip install failed: {}", stderr)));
+    }
+
+    tracing::info!("yt-dlp env setup complete at {:?}", env_dir);
+    Ok(())
+}
+
+/// Remove the yt-dlp venv
+pub fn delete_ytdlp_env() -> Result<()> {
+    let env_dir = ytdlp_env_dir();
+    if env_dir.exists() {
+        std::fs::remove_dir_all(&env_dir)?;
+    }
+    Ok(())
+}
+
+/// Check if curl_cffi is available in the current yt-dlp installation
+async fn check_curl_cffi() -> bool {
+    // Check venv first
+    let env_bin = ytdlp_env_bin();
+    if env_bin.exists() {
+        let output = Command::new(&env_bin)
+            .args(["--list-impersonate-targets"])
+            .output()
+            .await;
+        if let Ok(o) = output {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            return stdout.contains("curl_cffi") && !stdout.contains("(unavailable)");
+        }
+    }
+
+    // Check system yt-dlp
+    if binary_in_path("yt-dlp").await {
+        let output = Command::new("yt-dlp")
+            .args(["--list-impersonate-targets"])
+            .output()
+            .await;
+        if let Ok(o) = output {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            return stdout.contains("curl_cffi") && !stdout.contains("(unavailable)");
+        }
+    }
+
+    false
+}
+
+/// Find a working Python 3 executable
+async fn find_python() -> Option<String> {
+    for name in &["python3", "python"] {
+        let output = Command::new(name)
+            .args(["--version"])
+            .output()
+            .await;
+        if let Ok(o) = output {
+            if o.status.success() {
+                let version = String::from_utf8_lossy(&o.stdout);
+                if version.contains("Python 3") {
+                    return Some(name.to_string());
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Check current status of binaries
 pub async fn check_status() -> BinaryStatus {
+    let ytdlp_env = ytdlp_env_bin();
     let ytdlp_local = bin_dir().join("yt-dlp");
     let ffmpeg_local = bin_dir().join("ffmpeg");
 
-    let ytdlp_available = ytdlp_local.exists() || binary_in_path("yt-dlp").await;
+    let ytdlp_available = ytdlp_env.exists() || ytdlp_local.exists() || binary_in_path("yt-dlp").await;
     let ffmpeg_available = ffmpeg_local.exists() || binary_in_path("ffmpeg").await;
+    let curl_cffi_available = check_curl_cffi().await;
 
     use crate::model_manager::{is_model_ready, nllb_model_dir, NllbModelVariant};
 
@@ -181,7 +314,9 @@ pub async fn check_status() -> BinaryStatus {
     BinaryStatus {
         ytdlp_available,
         ffmpeg_available,
-        ytdlp_path: if ytdlp_local.exists() {
+        ytdlp_path: if ytdlp_env.exists() {
+            Some(ytdlp_env.to_string_lossy().to_string())
+        } else if ytdlp_local.exists() {
             Some(ytdlp_local.to_string_lossy().to_string())
         } else if ytdlp_available {
             Some("yt-dlp (system)".to_string())
@@ -207,5 +342,7 @@ pub async fn check_status() -> BinaryStatus {
         } else {
             None
         },
+        curl_cffi_available,
+        ytdlp_env_exists: ytdlp_env_bin().exists(),
     }
 }

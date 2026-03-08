@@ -35,6 +35,7 @@ export function BottomToolbar() {
   const [installing, setInstalling] = useState(false);
   const [nllbDownloading, setNllbDownloading] = useState<string | null>(null);
   const [nllbProgress, setNllbProgress] = useState<ModelDownloadProgress | null>(null);
+  const [curlCffiInstalling, setCurlCffiInstalling] = useState(false);
   const { update, checking, checkNow } = useUpdateChecker();
 
   const allOk =
@@ -105,6 +106,31 @@ export function BottomToolbar() {
       toast.success(`NLLB ${variant} model deleted`);
     } catch (e) {
       console.error("NLLB delete failed:", e);
+      toast.error(`Delete failed: ${e}`);
+    }
+  }, []);
+
+  const handleInstallCurlCffi = useCallback(async () => {
+    setCurlCffiInstalling(true);
+    try {
+      const status = await api.setupYtdlpEnv();
+      setBinStatus(status);
+      toast.success(t("deps.curlCffiReady"));
+    } catch (e) {
+      console.error("curl_cffi install failed:", e);
+      toast.error(`Install failed: ${e}`);
+    } finally {
+      setCurlCffiInstalling(false);
+    }
+  }, [t]);
+
+  const handleDeleteCurlCffi = useCallback(async () => {
+    try {
+      const status = await api.deleteYtdlpEnv();
+      setBinStatus(status);
+      toast.success("YouTube impersonation removed");
+    } catch (e) {
+      console.error("Delete failed:", e);
       toast.error(`Delete failed: ${e}`);
     }
   }, []);
@@ -269,6 +295,53 @@ export function BottomToolbar() {
                 path={binStatus?.ffmpeg_path}
                 t={t}
               />
+
+              {/* curl_cffi (YouTube Impersonation) */}
+              <div className="rounded-lg bg-secondary/50 px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{t("deps.curlCffi")}</span>
+                      <span className="text-[10px] text-muted-foreground">{t("deps.curlCffiDesc")}</span>
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-shrink-0">
+                    {binStatus?.curl_cffi_available ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 text-emerald-500">
+                          <Check className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-medium">{t("deps.curlCffiReady")}</span>
+                        </div>
+                        {binStatus?.ytdlp_env_exists && (
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={handleDeleteCurlCffi}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ) : curlCffiInstalling ? (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span className="text-[10px] font-medium">{t("deps.curlCffiInstalling")}</span>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[10px] px-2"
+                        onClick={handleInstallCurlCffi}
+                      >
+                        <Download className="w-3 h-3" />
+                        {t("deps.curlCffiInstall")}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* NLLB 600M Model */}
               <NllbModelRow

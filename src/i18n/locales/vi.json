@@ -28,7 +28,8 @@
     "subTranslate": "Phụ đề + Dịch",
     "subTranslateTts": "Phụ đề + Dịch + TTS",
     "translateOnly": "Dịch",
-    "translateTts": "Dịch + TTS"
+    "translateTts": "Dịch + TTS",
+    "useYtTranslation": "Dùng phụ đề dịch sẵn từ YouTube (thử nghiệm)"
   },
   "settings": {
     "title": "Cài đặt",
@@ -98,7 +99,13 @@
     "nllbDownloading": "Đang tải...",
     "nllbDelete": "Xóa",
     "nllbReady": "Sẵn sàng",
-    "nllbNotDownloaded": "Chưa tải"
+    "nllbNotDownloaded": "Chưa tải",
+    "curlCffi": "YouTube Impersonation",
+    "curlCffiDesc": "Cần cho phụ đề dịch tự động từ YouTube",
+    "curlCffiInstall": "Cài đặt",
+    "curlCffiInstalling": "Đang cài...",
+    "curlCffiReady": "Sẵn sàng",
+    "curlCffiDelete": "Xóa"
   },
   "log": {
     "title": "Nhật ký",

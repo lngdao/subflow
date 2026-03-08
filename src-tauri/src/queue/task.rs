@@ -13,6 +13,8 @@ pub struct Task {
     pub source_lang: String,
     pub target_langs: Vec<String>,
     pub mode: ProcessingMode,
+    #[serde(default)]
+    pub use_yt_translation: bool,
     pub status: TaskStatus,
     pub progress: f32,
     pub message: String,
@@ -25,7 +27,7 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn new_from_url(url: &str, source_lang: &str, target_langs: Vec<String>, mode: ProcessingMode) -> Self {
+    pub fn new_from_url(url: &str, source_lang: &str, target_langs: Vec<String>, mode: ProcessingMode, use_yt_translation: bool) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             url: Some(url.to_string()),
@@ -35,6 +37,7 @@ impl Task {
             source_lang: source_lang.to_string(),
             target_langs,
             mode,
+            use_yt_translation,
             status: TaskStatus::Queued,
             progress: 0.0,
             message: "Queued".to_string(),
@@ -62,6 +65,7 @@ impl Task {
             source_lang: source_lang.to_string(),
             target_langs,
             mode,
+            use_yt_translation: false,
             status: TaskStatus::Queued,
             progress: 0.0,
             message: "Queued".to_string(),

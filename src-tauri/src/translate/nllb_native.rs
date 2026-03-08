@@ -3,6 +3,7 @@ use std::sync::{Arc, OnceLock};
 
 use async_trait::async_trait;
 use ct2rs::tokenizers::sentencepiece;
+use ct2rs::sys::ComputeType;
 use ct2rs::{Config, TranslationOptions, Translator};
 use tokio::sync::{mpsc, oneshot, Mutex};
 
@@ -77,7 +78,19 @@ fn worker_loop(model_dir: PathBuf, receiver: &mut mpsc::Receiver<TranslateReques
         }
     };
 
-    let translator = match Translator::with_tokenizer(&model_dir, tokenizer, &Config::default()) {
+    // Use half of available CPU cores for translation, leaving room for UI/TTS
+    let num_threads = std::thread::available_parallelism()
+        .map(|n| (n.get() / 2).clamp(2, 8))
+        .unwrap_or(4);
+
+    let config = Config {
+        compute_type: ComputeType::AUTO,
+        num_threads_per_replica: num_threads,
+        max_queued_batches: -1,
+        ..Config::default()
+    };
+
+    let translator = match Translator::with_tokenizer(&model_dir, tokenizer, &config) {
         Ok(t) => t,
         Err(e) => {
             tracing::error!("Failed to load NLLB model: {}", e);
@@ -118,11 +131,16 @@ fn do_translate(
     // Target prefix guides the decoder to produce the target language
     let target_prefixes: Vec<Vec<&str>> = texts.iter().map(|_| vec![tgt]).collect();
 
+    let options = TranslationOptions {
+        beam_size: 1,
+        ..TranslationOptions::<String, String>::default()
+    };
+
     let results = translator
         .translate_batch_with_target_prefix(
             &input_refs,
             &target_prefixes,
-            &TranslationOptions::<String, String>::default(),
+            &options,
             None,
         )
         .map_err(|e| SubflowError::Translation(format!("NLLB translation failed: {}", e)))?;

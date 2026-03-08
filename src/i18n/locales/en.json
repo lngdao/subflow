@@ -28,7 +28,8 @@
     "subTranslate": "Sub + Translation",
     "subTranslateTts": "Sub + Translation + TTS",
     "translateOnly": "Translate",
-    "translateTts": "Translate + TTS"
+    "translateTts": "Translate + TTS",
+    "useYtTranslation": "Use YouTube auto-translated subtitles (experimental)"
   },
   "settings": {
     "title": "Settings",
@@ -98,7 +99,13 @@
     "nllbDownloading": "Downloading...",
     "nllbDelete": "Delete",
     "nllbReady": "Ready",
-    "nllbNotDownloaded": "Not downloaded"
+    "nllbNotDownloaded": "Not downloaded",
+    "curlCffi": "YouTube Impersonation",
+    "curlCffiDesc": "Required for YouTube auto-translated subs",
+    "curlCffiInstall": "Install",
+    "curlCffiInstalling": "Installing...",
+    "curlCffiReady": "Ready",
+    "curlCffiDelete": "Delete"
   },
   "log": {
     "title": "Log",

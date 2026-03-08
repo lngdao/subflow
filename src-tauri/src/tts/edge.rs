@@ -42,8 +42,14 @@ fn chunk_text(text: &str, max_chars: usize) -> Vec<String> {
             break;
         }
 
-        // Find the best split point near max_chars
-        let search_region = &remaining[..max_chars];
+        // Find a char-safe boundary at or before max_chars bytes
+        let mut safe_end = max_chars;
+        while safe_end > 0 && !remaining.is_char_boundary(safe_end) {
+            safe_end -= 1;
+        }
+
+        // Find the best split point near safe_end
+        let search_region = &remaining[..safe_end];
         let split_at = search_region
             .rfind(". ")
             .map(|i| i + 2)
@@ -52,7 +58,7 @@ fn chunk_text(text: &str, max_chars: usize) -> Vec<String> {
             .or_else(|| search_region.rfind('\n').map(|i| i + 1))
             .or_else(|| search_region.rfind(", ").map(|i| i + 2))
             .or_else(|| search_region.rfind(' ').map(|i| i + 1))
-            .unwrap_or(max_chars);
+            .unwrap_or(safe_end);
 
         let (chunk, rest) = remaining.split_at(split_at);
         let trimmed = chunk.trim();

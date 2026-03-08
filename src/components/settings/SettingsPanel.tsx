@@ -234,7 +234,7 @@ export function SettingsPanel() {
                   onValueChange={(v) => {
                     setLocal({
                       ...local,
-                      translation: { ...local.translation, provider: v },
+                      translation: { ...local.translation, provider: v, model: null },
                     });
                     setApiKey("");
                     setEditingApiKey(false);
@@ -323,7 +323,7 @@ export function SettingsPanel() {
                           },
                         })
                       }
-                      placeholder="https://api.example.com"
+                      placeholder={selectedProvider?.baseUrlPlaceholder || "https://api.example.com"}
                     />
                     {selectedProvider?.hasApiKey === false && (
                       <Button
@@ -390,7 +390,7 @@ export function SettingsPanel() {
                           },
                         })
                       }
-                      placeholder="Model name..."
+                      placeholder={selectedProvider?.modelPlaceholder || "Model name..."}
                     />
                   )}
                 </div>
