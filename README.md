@@ -1,21 +1,22 @@
 # SubFlow
 
-A desktop subtitle studio for downloading, translating, and generating TTS audio from YouTube videos and local subtitle files.
+A desktop subtitle studio — download, translate, and generate TTS audio from online videos or local subtitle files.
 
 Built with [Tauri v2](https://tauri.app/) + React + Rust.
 
 ## Features
 
-- **YouTube subtitle download** — auto-subs, manual subs, with browser impersonation to bypass rate limits
-- **Multi-provider translation** — Anthropic (Claude), OpenAI, Google Gemini, GLM (Zhipu AI), DeepL, LibreTranslate, NLLB-200
-- **NLLB-200 local translation** — run translation locally via CTranslate2, no API key needed (600M and 1.3B models)
-- **Text-to-Speech** — Edge TTS (free, 100+ languages) and OpenAI TTS
-- **Batch processing** — queue multiple videos/files, parallel jobs, parallel language processing
-- **Multi-language output** — translate to multiple target languages in a single task
+- **Subtitle download** — YouTube, and any platform supported by yt-dlp (1000+ sites)
 - **Local subtitle files** — drag-and-drop SRT, VTT, TXT files
+- **Multi-provider translation** — Anthropic (Claude), OpenAI, Google Gemini, GLM (Zhipu AI), DeepL, LibreTranslate, OpenAI-compatible APIs
+- **NLLB-200 local translation** — offline translation via CTranslate2, no API key needed (600M and 1.3B models)
+- **Text-to-Speech** — Edge TTS (free, 100+ languages) and OpenAI TTS
+- **Batch processing** — queue multiple videos/files with parallel jobs
+- **Multi-language output** — translate to multiple target languages in a single task
 - **Processing modes** — Subtitle Only, Sub + Translation, Sub + Translation + TTS
-- **YouTube auto-translated subtitles** — experimental support via yt-dlp impersonation
+- **YouTube auto-translated subtitles** — experimental support via yt-dlp browser impersonation
 - **Desktop notifications** — get notified when tasks complete or fail
+- **i18n** — English and Vietnamese
 
 ## Tech Stack
 
@@ -54,9 +55,9 @@ SubFlow manages these automatically via the in-app Dependencies panel:
 
 | Dependency | Purpose | Auto-install |
 |-----------|---------|--------------|
-| **yt-dlp** | YouTube subtitle download | Yes |
+| **yt-dlp** | Video/subtitle download (1000+ sites) | Yes |
 | **ffmpeg** | Media processing | Yes |
-| **curl_cffi** | YouTube browser impersonation (for auto-translated subs) | Yes (requires Python 3) |
+| **curl_cffi** | Browser impersonation for YouTube auto-translated subs | Yes (requires Python 3) |
 | **NLLB-200 600M** | Local translation model (~2.5 GB) | Manual download |
 | **NLLB-200 1.3B** | Higher quality local translation (~5.5 GB) | Manual download |
 

@@ -34,6 +34,7 @@
 - Edge TTS `chunk_text` panic on multi-byte UTF-8: finds char-safe boundary before slicing
 - YouTube 429 rate limiting on auto-translated subtitles — solved via yt-dlp browser impersonation
 - Delete YouTube Impersonation showing "Ready" after restart when system yt-dlp had curl_cffi — now checks `ytdlp_env_exists` separately
+- CI: macOS x86_64 build — `macos-13` runner retired, switch to `macos-latest` cross-compile
 
 ### Meta
 - Added MIT LICENSE
