@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.4.1 - Bugfixes (2026-03-08)
+
+### Fixed
+- yt-dlp/ffmpeg not detected when installed via Homebrew — macOS .app doesn't inherit shell PATH, now checks `/opt/homebrew/bin`, `/usr/local/bin` as fallback
+- Update notification text overflow in Dependencies modal — changelog text now properly constrained with `line-clamp` and `break-all`
+- CI: Windows ARM64 build failing — `--no-default-features` must be passed as cargo arg via `-- --no-default-features`, not as Tauri CLI arg
+- CI: macOS x86_64 build — `macos-13` runner retired, switch to `macos-latest` cross-compile
+
+### Changed
+- Status dot animation: replaced `animate-pulse` with ping ring effect (dot stays solid, ring expands and fades out)
+
+---
+
 ## v0.4.0 - YouTube Auto-Translation & Provider Cleanup (2026-03-08)
 
 ### Added

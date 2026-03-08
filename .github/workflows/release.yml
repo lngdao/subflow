@@ -174,4 +174,4 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: SubFlow ${{ github.ref_name }}
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          args: --target ${{ matrix.target }} --features vendored-openssl ${{ matrix.no_default_features == true && '--no-default-features' || '' }} --bundles ${{ matrix.bundles }}
+          args: --target ${{ matrix.target }} --features vendored-openssl --bundles ${{ matrix.bundles }} ${{ matrix.no_default_features == true && '-- --no-default-features' || '' }}

@@ -50,7 +50,26 @@ pub async fn check_ytdlp() -> Result<()> {
     }
 }
 
-/// Get path to yt-dlp binary. Checks: venv (with curl_cffi) → local binary → system PATH.
+/// Common binary directories that may not be in PATH when launched as a .app
+#[cfg(target_os = "macos")]
+const EXTRA_BIN_DIRS: &[&str] = &["/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin"];
+#[cfg(target_os = "linux")]
+const EXTRA_BIN_DIRS: &[&str] = &["/usr/local/bin", "/snap/bin"];
+#[cfg(target_os = "windows")]
+const EXTRA_BIN_DIRS: &[&str] = &[];
+
+/// Find a binary in common install directories (fallback for GUI apps)
+fn find_in_common_dirs(name: &str) -> Option<String> {
+    for dir in EXTRA_BIN_DIRS {
+        let full = format!("{}/{}", dir, name);
+        if std::path::Path::new(&full).exists() {
+            return Some(full);
+        }
+    }
+    None
+}
+
+/// Get path to yt-dlp binary. Checks: venv (with curl_cffi) → local binary → common dirs → system PATH.
 pub fn get_ytdlp_path() -> String {
     if let Some(config_dir) = dirs::config_dir() {
         // Prefer venv yt-dlp (has curl_cffi for impersonation)
@@ -68,10 +87,16 @@ pub fn get_ytdlp_path() -> String {
             return local_bin.to_string_lossy().to_string();
         }
     }
+
+    // Check common directories (homebrew, etc.)
+    if let Some(path) = find_in_common_dirs("yt-dlp") {
+        return path;
+    }
+
     "yt-dlp".to_string()
 }
 
-/// Get path to ffmpeg binary. Checks app data dir first, then falls back to system PATH.
+/// Get path to ffmpeg binary. Checks app data dir → common dirs → system PATH.
 fn get_ffmpeg_path() -> String {
     if let Some(config_dir) = dirs::config_dir() {
         let local_bin = config_dir.join("subflow").join("bin").join("ffmpeg");
@@ -79,6 +104,11 @@ fn get_ffmpeg_path() -> String {
             return local_bin.to_string_lossy().to_string();
         }
     }
+
+    if let Some(path) = find_in_common_dirs("ffmpeg") {
+        return path;
+    }
+
     "ffmpeg".to_string()
 }
 

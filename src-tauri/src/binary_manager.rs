@@ -34,14 +34,55 @@ fn binary_exists(name: &str) -> bool {
     path.exists()
 }
 
-/// Check if a binary is available in system PATH
+/// Common binary directories that may not be in PATH when launched as a .app
+#[cfg(target_os = "macos")]
+const EXTRA_BIN_DIRS: &[&str] = &[
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+    "/opt/local/bin",
+];
+
+#[cfg(target_os = "linux")]
+const EXTRA_BIN_DIRS: &[&str] = &[
+    "/usr/local/bin",
+    "/snap/bin",
+    "/home/linuxbrew/.linuxbrew/bin",
+];
+
+#[cfg(target_os = "windows")]
+const EXTRA_BIN_DIRS: &[&str] = &[];
+
+/// Check if a binary is available in system PATH or common install locations.
+/// GUI apps on macOS don't inherit shell PATH, so we also check homebrew etc.
 async fn binary_in_path(name: &str) -> bool {
-    Command::new(name)
+    // Try system PATH first
+    if Command::new(name)
         .arg("--version")
         .output()
         .await
         .map(|o| o.status.success())
         .unwrap_or(false)
+    {
+        return true;
+    }
+
+    // Check common directories (important for macOS .app bundles)
+    for dir in EXTRA_BIN_DIRS {
+        let full_path = format!("{}/{}", dir, name);
+        if std::path::Path::new(&full_path).exists() {
+            if Command::new(&full_path)
+                .arg("--version")
+                .output()
+                .await
+                .map(|o| o.status.success())
+                .unwrap_or(false)
+            {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 /// Get download URL for yt-dlp based on current platform
@@ -294,14 +335,70 @@ async fn find_python() -> Option<String> {
     None
 }
 
+/// Find a binary's full path — checks local, then PATH, then common directories
+async fn resolve_binary_path(name: &str) -> Option<String> {
+    let local = bin_dir().join(name);
+    if local.exists() {
+        return Some(local.to_string_lossy().to_string());
+    }
+
+    // Check PATH
+    if Command::new(name)
+        .arg("--version")
+        .output()
+        .await
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    {
+        return Some(format!("{} (system)", name));
+    }
+
+    // Check common directories
+    for dir in EXTRA_BIN_DIRS {
+        let full_path = format!("{}/{}", dir, name);
+        if std::path::Path::new(&full_path).exists() {
+            return Some(full_path);
+        }
+    }
+
+    None
+}
+
 /// Check current status of binaries
 pub async fn check_status() -> BinaryStatus {
     let ytdlp_env = ytdlp_env_bin();
     let ytdlp_local = bin_dir().join("yt-dlp");
-    let ffmpeg_local = bin_dir().join("ffmpeg");
 
-    let ytdlp_available = ytdlp_env.exists() || ytdlp_local.exists() || binary_in_path("yt-dlp").await;
-    let ffmpeg_available = ffmpeg_local.exists() || binary_in_path("ffmpeg").await;
+    let ytdlp_available;
+    let ytdlp_path;
+    if ytdlp_env.exists() {
+        ytdlp_available = true;
+        ytdlp_path = Some(ytdlp_env.to_string_lossy().to_string());
+    } else if ytdlp_local.exists() {
+        ytdlp_available = true;
+        ytdlp_path = Some(ytdlp_local.to_string_lossy().to_string());
+    } else if let Some(p) = resolve_binary_path("yt-dlp").await {
+        ytdlp_available = true;
+        ytdlp_path = Some(p);
+    } else {
+        ytdlp_available = false;
+        ytdlp_path = None;
+    };
+
+    let ffmpeg_local = bin_dir().join("ffmpeg");
+    let ffmpeg_available;
+    let ffmpeg_path;
+    if ffmpeg_local.exists() {
+        ffmpeg_available = true;
+        ffmpeg_path = Some(ffmpeg_local.to_string_lossy().to_string());
+    } else if let Some(p) = resolve_binary_path("ffmpeg").await {
+        ffmpeg_available = true;
+        ffmpeg_path = Some(p);
+    } else {
+        ffmpeg_available = false;
+        ffmpeg_path = None;
+    };
+
     let curl_cffi_available = check_curl_cffi().await;
 
     use crate::model_manager::{is_model_ready, nllb_model_dir, NllbModelVariant};
@@ -314,22 +411,8 @@ pub async fn check_status() -> BinaryStatus {
     BinaryStatus {
         ytdlp_available,
         ffmpeg_available,
-        ytdlp_path: if ytdlp_env.exists() {
-            Some(ytdlp_env.to_string_lossy().to_string())
-        } else if ytdlp_local.exists() {
-            Some(ytdlp_local.to_string_lossy().to_string())
-        } else if ytdlp_available {
-            Some("yt-dlp (system)".to_string())
-        } else {
-            None
-        },
-        ffmpeg_path: if ffmpeg_local.exists() {
-            Some(ffmpeg_local.to_string_lossy().to_string())
-        } else if ffmpeg_available {
-            Some("ffmpeg (system)".to_string())
-        } else {
-            None
-        },
+        ytdlp_path,
+        ffmpeg_path,
         nllb_600m_available,
         nllb_600m_path: if nllb_600m_available {
             Some(nllb_600m_dir.to_string_lossy().to_string())

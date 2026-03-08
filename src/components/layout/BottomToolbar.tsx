@@ -219,11 +219,11 @@ export function BottomToolbar() {
             <span
               onClick={() => setShowDepsModal(true)}
               className={cn(
-                "inline-block w-2 h-2 rounded-full cursor-pointer",
+                "inline-block w-2 h-2 rounded-full cursor-pointer status-dot",
                 binStatus === null && "bg-muted-foreground/50",
-                allOk && !update?.available && "bg-emerald-500 animate-pulse",
-                allOk && update?.available && "bg-orange-500 animate-pulse",
-                hasMissing && "bg-red-500 animate-pulse",
+                allOk && !update?.available && "bg-emerald-500 text-emerald-500",
+                allOk && update?.available && "bg-orange-500 text-orange-500",
+                hasMissing && "bg-red-500 text-red-500",
               )}
             />
           </div>
@@ -254,21 +254,21 @@ export function BottomToolbar() {
             {/* Update Section */}
             {update?.available && (
               <div className="mb-4 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2.5">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
                       {t("update.available", { version: update.version })}
                     </p>
                     {update.changelog && (
-                      <p className="text-[11px] text-muted-foreground mt-1 line-clamp-3">
-                        {update.changelog.slice(0, 200)}
-                        {update.changelog.length > 200 ? "..." : ""}
+                      <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 break-all">
+                        {update.changelog.slice(0, 150)}
+                        {update.changelog.length > 150 ? "..." : ""}
                       </p>
                     )}
                   </div>
                   <Button
                     size="sm"
-                    className="ml-3 shrink-0"
+                    className="shrink-0"
                     onClick={handleDownloadUpdate}
                   >
                     <ExternalLink className="w-3.5 h-3.5" />

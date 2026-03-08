@@ -115,6 +115,25 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Status dot glow animation — subtle ping ring */
+@keyframes dot-ping {
+  0% { transform: scale(1); opacity: 0.6; }
+  75%, 100% { transform: scale(2.2); opacity: 0; }
+}
+
+.status-dot {
+  position: relative;
+}
+
+.status-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: dot-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
 /* Progress shimmer animation */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
