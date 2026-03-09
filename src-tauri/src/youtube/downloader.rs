@@ -82,6 +82,9 @@ pub fn get_ytdlp_path() -> String {
         }
 
         // Fall back to standalone binary
+        #[cfg(target_os = "windows")]
+        let local_bin = config_dir.join("subflow").join("bin").join("yt-dlp.exe");
+        #[cfg(not(target_os = "windows"))]
         let local_bin = config_dir.join("subflow").join("bin").join("yt-dlp");
         if local_bin.exists() {
             return local_bin.to_string_lossy().to_string();
@@ -99,6 +102,9 @@ pub fn get_ytdlp_path() -> String {
 /// Get path to ffmpeg binary. Checks app data dir → common dirs → system PATH.
 fn get_ffmpeg_path() -> String {
     if let Some(config_dir) = dirs::config_dir() {
+        #[cfg(target_os = "windows")]
+        let local_bin = config_dir.join("subflow").join("bin").join("ffmpeg.exe");
+        #[cfg(not(target_os = "windows"))]
         let local_bin = config_dir.join("subflow").join("bin").join("ffmpeg");
         if local_bin.exists() {
             return local_bin.to_string_lossy().to_string();

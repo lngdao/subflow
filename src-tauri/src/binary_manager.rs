@@ -28,10 +28,12 @@ fn ytdlp_env_bin() -> PathBuf {
     { env.join("bin").join("yt-dlp") }
 }
 
-/// Check if a binary exists and is executable
-fn binary_exists(name: &str) -> bool {
-    let path = bin_dir().join(name);
-    path.exists()
+/// Get platform-correct binary filename (appends .exe on Windows)
+fn binary_filename(name: &str) -> String {
+    #[cfg(target_os = "windows")]
+    { format!("{}.exe", name) }
+    #[cfg(not(target_os = "windows"))]
+    { name.to_string() }
 }
 
 /// Common binary directories that may not be in PATH when launched as a .app
@@ -55,9 +57,12 @@ const EXTRA_BIN_DIRS: &[&str] = &[];
 /// Check if a binary is available in system PATH or common install locations.
 /// GUI apps on macOS don't inherit shell PATH, so we also check homebrew etc.
 async fn binary_in_path(name: &str) -> bool {
+    // ffmpeg uses -version (single dash), others use --version
+    let version_arg = if name == "ffmpeg" || name == "ffprobe" { "-version" } else { "--version" };
+
     // Try system PATH first
     if Command::new(name)
-        .arg("--version")
+        .arg(version_arg)
         .output()
         .await
         .map(|o| o.status.success())
@@ -111,7 +116,7 @@ fn ffmpeg_download_url() -> Option<&'static str> {
     }
     #[cfg(target_os = "windows")]
     {
-        Some("https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-win32-x64.exe")
+        Some("https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-win32-x64")
     }
     #[cfg(target_os = "linux")]
     {
@@ -164,7 +169,7 @@ pub async fn ensure_ytdlp() -> Result<PathBuf> {
     }
 
     let bin = bin_dir();
-    let ytdlp_path = bin.join("yt-dlp");
+    let ytdlp_path = bin.join(binary_filename("yt-dlp"));
 
     // Already downloaded locally
     if ytdlp_path.exists() {
@@ -187,7 +192,7 @@ pub async fn ensure_ytdlp() -> Result<PathBuf> {
 /// Ensure ffmpeg is available. Downloads if not found.
 pub async fn ensure_ffmpeg() -> Result<Option<PathBuf>> {
     let bin = bin_dir();
-    let ffmpeg_path = bin.join("ffmpeg");
+    let ffmpeg_path = bin.join(binary_filename("ffmpeg"));
 
     // Already downloaded locally
     if ffmpeg_path.exists() {
@@ -337,19 +342,13 @@ async fn find_python() -> Option<String> {
 
 /// Find a binary's full path — checks local, then PATH, then common directories
 async fn resolve_binary_path(name: &str) -> Option<String> {
-    let local = bin_dir().join(name);
+    let local = bin_dir().join(binary_filename(name));
     if local.exists() {
         return Some(local.to_string_lossy().to_string());
     }
 
     // Check PATH
-    if Command::new(name)
-        .arg("--version")
-        .output()
-        .await
-        .map(|o| o.status.success())
-        .unwrap_or(false)
-    {
+    if binary_in_path(name).await {
         return Some(format!("{} (system)", name));
     }
 
@@ -367,7 +366,7 @@ async fn resolve_binary_path(name: &str) -> Option<String> {
 /// Check current status of binaries
 pub async fn check_status() -> BinaryStatus {
     let ytdlp_env = ytdlp_env_bin();
-    let ytdlp_local = bin_dir().join("yt-dlp");
+    let ytdlp_local = bin_dir().join(binary_filename("yt-dlp"));
 
     let ytdlp_available;
     let ytdlp_path;
@@ -385,7 +384,7 @@ pub async fn check_status() -> BinaryStatus {
         ytdlp_path = None;
     };
 
-    let ffmpeg_local = bin_dir().join("ffmpeg");
+    let ffmpeg_local = bin_dir().join(binary_filename("ffmpeg"));
     let ffmpeg_available;
     let ffmpeg_path;
     if ffmpeg_local.exists() {

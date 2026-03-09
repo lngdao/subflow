@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.4.3 - Windows ffmpeg Fix (2026-03-09)
+
+### Fixed
+- **Windows**: ffmpeg download always failing — download URL had incorrect `.exe` suffix (`ffmpeg-win32-x64.exe`) but the actual release asset is `ffmpeg-win32-x64` (no extension). This caused a silent 404 so ffmpeg was never installed
+- **Windows**: downloaded binaries (yt-dlp, ffmpeg) saved without `.exe` extension, preventing Windows from executing them
+- ffmpeg not detected in system PATH — `binary_in_path` used `--version` flag but ffmpeg requires `-version` (single dash)
+- `resolve_binary_path()` not using platform-correct filenames when checking local bin directory
+
+---
+
 ## v0.4.2 - CI Fix (2026-03-08)
 
 ### Fixed
