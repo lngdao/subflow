@@ -1,6 +1,6 @@
 [package]
 name = "subflow"
-version = "0.4.2"
+version = "0.4.3"
 description = "SubFlow - Subtitle Translation Studio"
 authors = ["SubFlow"]
 license = "MIT"
